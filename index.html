@@ -42,6 +42,17 @@
   .blob.b{width:42vmax;height:42vmax;right:-14vmax;top:18vmax;background:radial-gradient(circle, rgba(255,122,102,.5), transparent 62%);}
   .blob.c{width:38vmax;height:38vmax;left:30vmax;bottom:-20vmax;background:radial-gradient(circle, rgba(95,227,200,.34), transparent 62%);}
 
+  /* ── signature: arcade marquee bulb strip along the top ── */
+  .bulbs{position:fixed;top:0;left:0;right:0;height:11px;z-index:3;display:flex;justify-content:space-between;
+    align-items:center;padding:0 10px;pointer-events:none;
+    background:linear-gradient(180deg, rgba(0,0,0,.35), transparent);}
+  .bulbs .bulb{width:5px;height:5px;border-radius:50%;background:currentColor;
+    box-shadow:0 0 7px currentColor,0 0 2px #fff inset;opacity:.4;}
+  @media (prefers-reduced-motion:no-preference){
+    .bulbs .bulb{animation:chase 1.7s ease-in-out infinite;}
+    @keyframes chase{0%,100%{opacity:.28;transform:scale(.85);}50%{opacity:1;transform:scale(1.18);}}
+  }
+
   .wrap{position:relative;z-index:1;width:100%;max-width:980px;margin:0 auto;padding:clamp(28px,6vw,64px) 22px 40px;flex:1 0 auto;}
 
   /* ---- hero / marquee ---- */
@@ -49,6 +60,10 @@
   .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--lav-dim);
     display:inline-flex;align-items:center;gap:10px;}
   .eyebrow .led{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint);}
+  @media (prefers-reduced-motion:no-preference){
+    .eyebrow .led{animation:blip 2.4s ease-in-out infinite;}
+    @keyframes blip{0%,46%,54%,100%{opacity:1;box-shadow:0 0 10px var(--mint);}48%,52%{opacity:.25;box-shadow:0 0 2px var(--mint);}}
+  }
   .marquee{margin:18px 0 0;line-height:.92;}
   .marquee .word{
     font-family:var(--display);font-weight:700;letter-spacing:-.02em;
@@ -76,7 +91,7 @@
   .cabinet{
     --accent:var(--gold);
     position:relative;display:flex;flex-direction:column;gap:16px;
-    text-decoration:none;color:inherit;isolation:isolate;
+    text-decoration:none;color:inherit;isolation:isolate;overflow:hidden;
     background:linear-gradient(180deg,var(--surface-hi),var(--surface));
     border:1px solid var(--line);border-radius:20px;padding:22px;
     box-shadow:0 16px 38px rgba(0,0,0,.36);
@@ -88,6 +103,13 @@
     background:radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--accent) 32%, transparent), transparent 70%);
     transition:opacity .25s ease;
   }
+  /* glass gloss that sweeps across on hover (arcade-panel sheen) */
+  .cabinet::after{
+    content:"";position:absolute;inset:0;border-radius:20px;z-index:2;pointer-events:none;opacity:0;
+    background:linear-gradient(115deg, transparent 36%, rgba(255,255,255,.10) 50%, transparent 64%);
+    transform:translateX(-28%);
+    transition:opacity .3s ease, transform .55s ease;
+  }
   .cabinet:hover,.cabinet:focus-visible{
     transform:translateY(-6px);border-color:color-mix(in srgb,var(--accent) 55%,transparent);
     box-shadow:0 22px 50px rgba(0,0,0,.5), 0 0 0 1px color-mix(in srgb,var(--accent) 40%,transparent),
@@ -95,7 +117,9 @@
     outline:none;
   }
   .cabinet:hover::before,.cabinet:focus-visible::before{opacity:1;}
+  .cabinet:hover::after,.cabinet:focus-visible::after{opacity:1;transform:translateX(28%);}
   .cabinet:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 70%,white);outline-offset:3px;}
+  @media (prefers-reduced-motion:reduce){ .cabinet::after{transition:opacity .3s ease;transform:none;} .cabinet:hover::after{transform:none;} }
 
   .cab-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
   .emblem{
@@ -114,6 +138,8 @@
   .status .led{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);}
   .status.soon{color:var(--lav-dim);background:rgba(255,255,255,.04);border-color:var(--line);}
   .status.soon .led{background:var(--lav-dim);box-shadow:none;}
+  .status.support{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:color-mix(in srgb,var(--accent) 34%,transparent);}
+  .status.support .led{background:var(--accent);box-shadow:0 0 8px var(--accent);}
 
   .cab-title{font-family:var(--display);font-weight:600;font-size:23px;margin:0;color:#fff7ea;}
   .cab-desc{margin:-6px 0 0;font-size:14.5px;line-height:1.5;color:var(--lav);}
@@ -124,15 +150,26 @@
   .cabinet:hover .go .arrow,.cabinet:focus-visible .go .arrow{transform:translate(3px,-3px);}
 
   /* ghost "coming soon" cabinet */
-  .cabinet.ghost{background:transparent;border-style:dashed;border-color:var(--line);box-shadow:none;cursor:default;justify-content:center;text-align:center;align-items:center;min-height:190px;gap:10px;}
+  .cabinet.ghost{background:transparent;border-style:dashed;border-color:var(--line);box-shadow:none;cursor:default;justify-content:center;text-align:center;align-items:center;min-height:190px;gap:10px;overflow:visible;}
+  .cabinet.ghost::after{display:none;}
   .cabinet.ghost:hover{transform:none;box-shadow:none;border-color:rgba(255,255,255,.16);}
   .cabinet.ghost .emblem{background:rgba(255,255,255,.03);border-color:var(--line);color:var(--lav-dim);box-shadow:none;}
   .cabinet.ghost h3{font-family:var(--display);font-size:18px;margin:0;color:var(--lav);}
   .cabinet.ghost p{margin:0;font-size:13px;color:var(--lav-dim);max-width:30ch;}
 
+  /* ── optional sponsored slot (hidden until a unit is added) ── */
+  .sponsor{margin-top:26px;display:none;}
+  .sponsor.on{display:block;}
+  .sponsor .lab{display:flex;align-items:center;gap:12px;margin:0 0 12px;color:var(--lav-dim);}
+  .sponsor .lab span{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;}
+  .sponsor .lab::before,.sponsor .lab::after{content:"";height:1px;flex:1;background:var(--line);}
+  .sponsor .frame{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:12px;min-height:60px;}
+
   footer{position:relative;z-index:1;flex:0 0 auto;text-align:center;padding:26px 22px 30px;color:var(--lav-dim);
     font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;}
   footer b{color:var(--gold);font-weight:600;}
+  footer a{color:var(--coral);text-decoration:none;}
+  footer a:hover{text-decoration:underline;}
 
   /* entrance */
   .rise{opacity:0;transform:translateY(14px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards;}
@@ -150,6 +187,7 @@
 </style>
 </head>
 <body>
+  <div class="bulbs" id="bulbs" aria-hidden="true"></div>
   <div class="blob a"></div><div class="blob b"></div><div class="blob c"></div>
 
   <div class="wrap">
@@ -164,6 +202,16 @@
 
     <div class="shelf-label rise" style="animation-delay:.16s"><span>Now playing</span></div>
     <main class="grid" id="grid"></main>
+
+    <!-- OPTIONAL display ad. To switch on: (1) add the class "on" to this sponsor
+         section, (2) paste your Adsterra Native Banner code inside the frame below. -->
+    <section class="sponsor on" id="sponsor" aria-label="Sponsored">
+      <div class="lab"><span>Sponsored</span></div>
+      <div class="frame" id="nativeSlot">
+        <script async="async" data-cfasync="false" src="https://pl30085531.effectivecpmnetwork.com/5f59b5516912752b04a53ecefe475ac3/invoke.js"></script>
+        <div id="container-5f59b5516912752b04a53ecefe475ac3"></div>
+      </div>
+    </section>
   </div>
 
   <footer>made for fun · <b>playy.online</b> · <span id="year"></span></footer>
@@ -171,12 +219,7 @@
   <script>
     // ───────────────────────────────────────────────────────────────────
     //  ADD A PROJECT: copy one block below, change the 5 fields, done.
-    //   name    – shown as the title
-    //   desc    – one plain line about what it is
-    //   url     – the full address (e.g. https://yours.playy.online)
-    //   accent  – "var(--gold)", "var(--coral)", "var(--mint)", or any hex like "#7aa2ff"
-    //   glyph   – an emoji/symbol, or raw HTML for the emblem
-    //   live    – true (shows LIVE) or false (shows SOON, not clickable)
+    //   name / desc / url / accent / glyph / live
     // ───────────────────────────────────────────────────────────────────
     const PROJECTS = [
       {
@@ -189,7 +232,7 @@
       },
       {
         name: "Stream",
-        desc: "Tune in and watch together. Live video, your way.",  // ← edit this line to match what Stream really is
+        desc: "Movies and TV series from across streaming platforms — all in one app.",
         url: "https://stream.playy.online",
         accent: "var(--coral)",
         glyph: "▶",
@@ -197,38 +240,79 @@
       },
     ];
 
+    // ───────────────────────────────────────────────────────────────────
+    //  SUPPORT CABINET: paste your Adsterra Smartlink URL between the quotes.
+    //  While it's left as PASTE_SMARTLINK_HERE the tile still shows, but the
+    //  link is inert — swap in the real URL before you deploy.
+    // ───────────────────────────────────────────────────────────────────
+    const SUPPORT_URL = "https://www.effectivecpmnetwork.com/et74u4gm?key=619098af53fe13c2c2f05f0455c960bf";
+
     const grid = document.getElementById("grid");
-    PROJECTS.forEach((p, i) => {
-      const tag = p.live ? "a" : "div";
+    function cabinet(p){
+      const live = p.live && p.url && p.url !== "PASTE_SMARTLINK_HERE";
+      const tag = live ? "a" : "div";
       const el = document.createElement(tag);
-      el.className = "cabinet rise";
+      el.className = "cabinet rise" + (p.support ? " support" : "");
       el.style.setProperty("--accent", p.accent || "var(--gold)");
-      el.style.animationDelay = (0.2 + i * 0.06) + "s";
-      if (p.live) { el.href = p.url; }
-      const host = (() => { try { return new URL(p.url).host; } catch { return p.url; } })();
+      if (live) { el.href = p.url; if (p.support) { el.target = "_blank"; el.rel = "noopener nofollow sponsored"; } }
+      const host = (() => { try { return new URL(p.url).host; } catch { return p.support ? "support the dev" : p.url; } })();
+      const statusCls = p.support ? "support" : (p.live ? "" : "soon");
+      const statusTxt = p.support ? "Support" : (p.live ? "Live" : "Soon");
+      const foot = p.support
+        ? `<span class="url">${live ? "opens in a new tab" : "add your link"}</span><span class="go">♥ Support <span class="arrow">↗</span></span>`
+        : (p.live
+            ? `<span class="url">${host}</span><span class="go">Enter <span class="arrow">↗</span></span>`
+            : `<span class="url">${host}</span><span class="go" style="color:var(--lav-dim)">soon</span>`);
       el.innerHTML = `
         <div class="cab-top">
           <div class="emblem">${p.glyph || "🎮"}</div>
-          <span class="status ${p.live ? "" : "soon"}"><span class="led"></span>${p.live ? "Live" : "Soon"}</span>
+          <span class="status ${statusCls}"><span class="led"></span>${statusTxt}</span>
         </div>
         <h2 class="cab-title">${p.name}</h2>
         <p class="cab-desc">${p.desc}</p>
-        <div class="cab-foot">
-          <span class="url">${host}</span>
-          ${p.live ? '<span class="go">Enter <span class="arrow">↗</span></span>' : '<span class="go" style="color:var(--lav-dim)">soon</span>'}
-        </div>`;
-      grid.appendChild(el);
+        <div class="cab-foot">${foot}</div>`;
+      return el;
+    }
+
+    let delay = 0.2;
+    PROJECTS.forEach((p) => { const el = cabinet(p); el.style.animationDelay = delay + "s"; delay += 0.06; grid.appendChild(el); });
+
+    // the support "cabinet" — sits on the shelf like a game, not like an ad
+    const support = cabinet({
+      name: "Support the dev",
+      desc: "Like the cabinets? Toss a coin to keep them running and new ones coming.",
+      url: SUPPORT_URL,
+      accent: "var(--mint)",
+      glyph: "☕",
+      live: true,
+      support: true,
     });
+    support.style.animationDelay = delay + "s"; delay += 0.06;
+    grid.appendChild(support);
 
     // a friendly "growing" tile so visitors know more is coming
     const ghost = document.createElement("div");
     ghost.className = "cabinet ghost rise";
-    ghost.style.animationDelay = (0.2 + PROJECTS.length * 0.06) + "s";
+    ghost.style.animationDelay = delay + "s";
     ghost.innerHTML = `
       <div class="emblem">＋</div>
       <h3>More on the way</h3>
       <p>New playthings are being built. Check back soon.</p>`;
     grid.appendChild(ghost);
+
+    // marquee bulbs (running arcade lights along the top)
+    (function(){
+      const bar = document.getElementById("bulbs");
+      const cols = ["var(--gold)","var(--coral)","var(--mint)"];
+      const n = Math.min(40, Math.max(18, Math.round(window.innerWidth / 26)));
+      for (let i = 0; i < n; i++){
+        const b = document.createElement("span");
+        b.className = "bulb";
+        b.style.color = cols[i % cols.length];
+        b.style.animationDelay = (i * 0.05) + "s";
+        bar.appendChild(b);
+      }
+    })();
 
     document.getElementById("year").textContent = new Date().getFullYear();
   </script>
