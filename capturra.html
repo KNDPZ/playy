@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Capturra — free multi-source recorder for Windows | playy.online</title>
+<meta name="description" content="Capturra is a free, open-source capture monitor, audio mixer, scene system, and crash-safe recorder for Windows. Cameras, capture cards, monitors, and windows — mixed live, recorded to disk every second. By playy.online." />
+<meta property="og:title" content="Capturra — every source, one deck, nothing lost" />
+<meta property="og:description" content="Free, open-source multi-source recorder for Windows with a scene system, master + per-scene audio, and crash-safe recording. No account, no telemetry, no watermark." />
+<meta property="og:image" content="capturra-assets/capturra-live.webp" />
+<meta name="theme-color" content="#0E131C" />
+<script>/* set theme before first paint — dark by default, shared with the main page */
+(function(){var t;try{t=localStorage.getItem("playy-theme")}catch(e){}
+document.documentElement.dataset.theme=(t==="light")?"light":"dark";})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root, :root[data-theme="dark"]{
+    --paper:#0E131C; --paper-2:#131A27; --card:#141C2A; --card-line:#232C3B;
+    --card-hover-line:#37435A; --card-shadow:0 12px 32px rgba(0,0,0,.4);
+    --ink:#E9EBE7; --slate:#8B95A4; --line:#1E2634;
+    --amber:#E3A83A; --amber-deep:#F0BE62; --live:#2FBF77;
+    --night:#0A101B; --night-line:#1B2534; --night-ink:#DCE9E6;
+    --rec:#FF5C5C;   /* Capturra's tally red, used only on this page */
+    --display:'Archivo', system-ui, sans-serif;
+    --body:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --max:1060px;
+  }
+  :root[data-theme="light"]{
+    --paper:#FAF9F5; --paper-2:#F2F0E9; --card:#FFFFFF; --card-line:#E4E1D7;
+    --card-hover-line:#CFC9B8; --card-shadow:0 10px 28px rgba(21,27,38,.07);
+    --ink:#151B26; --slate:#59616E; --line:#E4E1D7;
+    --amber:#B4780E; --amber-deep:#8F5E08; --live:#177A4C;
+    --night:#0D1420; --night-line:#1B2534; --night-ink:#DCE9E6;
+    --rec:#D33B3B;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;min-height:100dvh;font-family:var(--body);font-size:16px;line-height:1.6;
+    color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;}
+  a{color:var(--amber);text-decoration:none;}
+  a:hover{color:var(--amber-deep);}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:2px;}
+  .wrap{width:100%;max-width:var(--max);margin:0 auto;padding:0 24px;}
+
+  /* ---------- header (same as the main page) ---------- */
+  header.top{border-bottom:1px solid var(--line);background:var(--paper);}
+  .topbar{display:flex;align-items:center;gap:28px;padding:18px 0;}
+  .wordmark{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.02em;color:var(--ink);}
+  .wordmark .tld{font-family:var(--mono);font-weight:500;font-size:14px;color:var(--amber);letter-spacing:0;}
+  .crumb{font-family:var(--mono);font-size:12.5px;color:var(--slate);letter-spacing:.06em;}
+  .crumb b{color:var(--ink);font-weight:600;}
+  nav.main{margin-left:auto;display:flex;gap:22px;}
+  nav.main a{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);}
+  nav.main a:hover{color:var(--ink);}
+  #themeBtn{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;
+    color:var(--slate);background:var(--paper-2);border:1px solid var(--line);border-radius:999px;
+    padding:6px 12px;cursor:pointer;}
+  #themeBtn:hover{color:var(--ink);border-color:var(--card-hover-line);}
+  @media(max-width:700px){ nav.main{display:none;} }
+
+  /* ---------- hero ---------- */
+  .hero{padding:clamp(52px,8vw,92px) 0 clamp(28px,4vw,44px);}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--slate);margin:0 0 18px;}
+  .hero h1{font-family:var(--display);font-weight:700;letter-spacing:-.03em;line-height:1.05;
+    font-size:clamp(36px,6vw,62px);margin:0;max-width:17ch;}
+  .hero h1 em{font-style:normal;color:var(--amber);}
+  .hero p.lede{margin:22px 0 0;max-width:58ch;font-size:clamp(16px,2vw,18px);color:var(--slate);}
+  .hero p.lede b{color:var(--ink);font-weight:600;}
+  .hero .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px;}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:13px;font-weight:600;
+    border-radius:8px;padding:13px 20px;border:1px solid transparent;transition:background .15s,border-color .15s,color .15s;}
+  .btn.primary{background:var(--amber);color:#1A1206;}
+  .btn.primary:hover{background:var(--amber-deep);color:#1A1206;}
+  .btn.ghost{border-color:var(--card-line);color:var(--ink);}
+  .btn.ghost:hover{border-color:var(--amber);color:var(--amber);}
+  .relchips{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;font-family:var(--mono);font-size:11.5px;color:var(--slate);}
+  .relchips span{border:1px solid var(--line);border-radius:999px;padding:4px 11px;background:var(--paper-2);}
+  .relchips .v{color:var(--amber);border-color:var(--amber);}
+
+  /* ---------- framed screenshots ---------- */
+  .shot{background:var(--night);border:1px solid var(--night-line);border-radius:14px;overflow:hidden;box-shadow:var(--card-shadow);}
+  .shot .bar{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--night-line);}
+  .shot .bar i{width:10px;height:10px;border-radius:50%;background:#2A3648;}
+  .shot .bar i:first-child{background:#7A3B3B;}
+  .shot .bar i:nth-child(2){background:#7A6A3B;}
+  .shot .bar i:nth-child(3){background:#3B6B4E;}
+  .shot .bar span{margin-left:8px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:#5A6A7E;}
+  .shot img{display:block;width:100%;height:auto;}
+  .heroShot{margin-top:clamp(30px,5vw,52px);}
+
+  /* ---------- sections ---------- */
+  section{padding:clamp(34px,5vw,56px) 0;}
+  .seclab{display:flex;align-items:baseline;gap:16px;margin:0 0 26px;}
+  .seclab h2{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:-.01em;margin:0;white-space:nowrap;}
+  .seclab .rule{height:1px;flex:1;background:var(--line);}
+  .seclab .note{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--slate);white-space:nowrap;}
+
+  /* ---------- feature cards ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;}
+  .card{display:flex;flex-direction:column;gap:11px;position:relative;background:var(--card);
+    border:1px solid var(--card-line);border-radius:12px;padding:24px;color:inherit;}
+  .card h3{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.01em;margin:0;display:flex;align-items:center;gap:10px;}
+  .card h3 .tag{font-family:var(--mono);font-weight:600;font-size:9.5px;letter-spacing:.1em;color:var(--amber);
+    border:1px solid var(--amber);border-radius:4px;padding:2px 6px;opacity:.9;}
+  .card p{margin:0;font-size:14.5px;color:var(--slate);}
+  .card p b{color:var(--ink);font-weight:600;}
+
+  /* ---------- crash-safe band (the "bench" treatment) ---------- */
+  .bench{background:var(--night);color:var(--night-ink);border-radius:16px;overflow:hidden;border:1px solid var(--night-line);}
+  .bench-in{display:grid;grid-template-columns:1.1fr .9fr;gap:0;}
+  .bench .copy{padding:clamp(28px,4vw,46px);}
+  .bench .eyebrow{color:#7C8CA0;margin-bottom:14px;}
+  .bench h2{font-family:var(--display);font-weight:700;font-size:clamp(24px,3.4vw,32px);letter-spacing:-.02em;margin:0 0 14px;color:#fff;}
+  .bench h2 .rx{color:var(--rec);}
+  .bench p{margin:0 0 16px;color:#A9B7C6;font-size:15.5px;max-width:52ch;}
+  .bench .live{display:grid;place-items:center;border-left:1px solid var(--night-line);padding:clamp(24px,3vw,36px);
+    background:radial-gradient(90% 70% at 70% 20%, rgba(255,92,92,.08), transparent 70%), #0A101B;}
+  .telem{width:100%;max-width:330px;font-family:var(--mono);font-size:13px;}
+  .telem .trow{display:flex;justify-content:space-between;gap:14px;padding:9px 2px;border-bottom:1px solid var(--night-line);color:#7C8CA0;}
+  .telem .trow b{color:var(--night-ink);font-weight:500;text-align:right;font-variant-numeric:tabular-nums;}
+  .telem .trow b.rec{color:var(--rec);}
+  .telem .cap{margin-top:12px;font-size:10.5px;letter-spacing:.06em;color:#5A6A7E;line-height:1.6;}
+  @media(max-width:820px){ .bench-in{grid-template-columns:1fr;} .bench .live{border-left:none;border-top:1px solid var(--night-line);} }
+
+  /* ---------- how it's used ---------- */
+  .steps{display:flex;flex-direction:column;gap:clamp(28px,4vw,44px);}
+  .step{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,3.5vw,44px);align-items:center;}
+  .step:nth-child(even) .txt{order:2;}
+  .step .n{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--amber);margin:0 0 10px;}
+  .step h3{font-family:var(--display);font-weight:700;font-size:clamp(19px,2.4vw,24px);letter-spacing:-.01em;margin:0 0 10px;}
+  .step p{margin:0;color:var(--slate);font-size:15px;max-width:46ch;}
+  .step p b{color:var(--ink);font-weight:600;}
+  .step p code{font-family:var(--mono);font-size:.9em;color:var(--amber);background:var(--paper-2);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;}
+  .step .shot.tall img{max-height:520px;width:auto;margin:0 auto;}
+  @media(max-width:820px){ .step{grid-template-columns:1fr;} .step:nth-child(even) .txt{order:0;} }
+
+  /* ---------- download ---------- */
+  .dl{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:820px){ .dl{grid-template-columns:1fr;} }
+  .dl .card{gap:14px;}
+  .dl .fname{font-family:var(--mono);font-size:12px;color:var(--slate);word-break:break-all;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;}
+  .dl ul{margin:0;padding-left:18px;color:var(--slate);font-size:14px;}
+  .dl li{margin:4px 0;}
+  .dl li b{color:var(--ink);font-weight:600;}
+  .dl .btn{justify-content:center;}
+  .recomm{position:absolute;top:-11px;left:22px;font-family:var(--mono);font-size:10px;font-weight:600;
+    letter-spacing:.12em;text-transform:uppercase;color:#1A1206;background:var(--amber);border-radius:999px;padding:3px 10px;}
+  .smallprint{margin-top:18px;font-size:13px;color:var(--slate);max-width:74ch;line-height:1.7;}
+  .smallprint b{color:var(--ink);font-weight:600;}
+
+  /* ---------- indie note ---------- */
+  .indie{background:var(--card);border:1px solid var(--card-line);border-radius:12px;padding:clamp(22px,3vw,32px);}
+  .indie p{margin:0;color:var(--slate);font-size:15px;max-width:72ch;}
+  .indie p b{color:var(--ink);font-weight:600;}
+  .indie .sig{margin-top:14px;font-family:var(--mono);font-size:12px;color:var(--slate);}
+
+  /* ---------- footer ---------- */
+  footer{margin-top:auto;border-top:1px solid var(--line);padding:26px 0 30px;color:var(--slate);}
+  .foot-in{display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;}
+  .foot-in .spacer{flex:1;}
+
+  .rise{opacity:0;transform:translateY(10px);animation:rise .55s cubic-bezier(.2,.7,.2,1) forwards;}
+  @keyframes rise{to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .rise{opacity:1;transform:none;animation:none;} }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap topbar">
+    <a class="wordmark" href="/">playy<span class="tld">.online</span></a>
+    <span class="crumb">/ <b>capturra</b></span>
+    <nav class="main" aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#how">How it's used</a>
+      <a href="#download">Download</a>
+      <a href="/">← Studio</a>
+    </nav>
+    <button id="themeBtn" aria-label="Switch color theme">☀ Light</button>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <!-- ============ HERO ============ -->
+    <div class="hero">
+      <p class="eyebrow rise">playy.online — desktop software · windows · free &amp; open source</p>
+      <h1 class="rise" style="animation-delay:.05s">Every source. One deck.<br><em>Nothing lost.</em></h1>
+      <p class="lede rise" style="animation-delay:.1s">
+        Capturra is a <b>multi-source capture monitor, audio mixer, scene system, and crash-safe
+        recorder</b> for Windows. Cameras, capture cards, monitors, and app windows — mixed live,
+        switched with hotkeys, and <b>written to disk every single second</b>, so a crash mid-recording
+        costs you one second, not the whole take.
+      </p>
+      <div class="ctas rise" style="animation-delay:.15s">
+        <a class="btn primary" href="https://github.com/KNDPZ/Capturra/releases/download/v071526a/Capturra-Standalone-071526a.exe">⤓ Download for Windows — free</a>
+        <a class="btn ghost" href="#how">See how it works ↓</a>
+      </div>
+      <div class="relchips rise" style="animation-delay:.18s">
+        <span class="v">v071526a</span><span>Windows 10 / 11</span><span>MIT license</span>
+        <span>no account</span><span>no telemetry</span><span>no watermark</span>
+      </div>
+
+      <figure class="shot heroShot rise" style="animation-delay:.22s;margin:36px 0 0;">
+        <div class="bar"><i></i><i></i><i></i><span>CAPTURRA — LIVE · 3 VIDEO SOURCES · MASTER AUDIO METERING</span></div>
+        <img src="capturra-assets/capturra-live.webp" alt="Capturra running live: a camera filling the stage, the deck panel showing video sources, master audio with a live VU meter, and the broadcast-style status bar." width="1800" height="1096" loading="eager" />
+      </figure>
+    </div>
+
+    <!-- ============ FEATURES ============ -->
+    <section id="features">
+      <div class="seclab"><h2>What it does</h2><span class="rule"></span><span class="note">everything below ships in the free download</span></div>
+      <div class="grid">
+        <div class="card">
+          <h3>Scene system</h3>
+          <p>Build unlimited <b>single, grid, and overlay scenes</b> — each with its own main source,
+             members, and picture-in-picture positions you drag right on the stage. Duplicate any
+             scene to make variants in one click.</p>
+        </div>
+        <div class="card">
+          <h3>Master + scene audio <span class="tag">NEW</span></h3>
+          <p><b>Master audio follows you through every scene</b> — switch views mid-recording and the
+             mix carries straight through. On top of it, each scene can carry its own sources, or a
+             one-click copy of the master set with independent volume, MUTE, and MON.</p>
+        </div>
+        <div class="card">
+          <h3>Crash-safe recording</h3>
+          <p>The recording streams to your folder <b>every second</b> while it runs. App freezes, PC
+             blue-screens, power cut — the file already contains everything up to the last second.
+             Nothing to recover. It's simply there.</p>
+        </div>
+        <div class="card">
+          <h3>Save &amp; load configs <span class="tag">NEW</span></h3>
+          <p>Your whole setup — scenes, positions, audio levels, hotkeys, output settings — saved to
+             one file. Next session, <b>load it and everything re-attaches by device name</b>. No
+             re-arranging, no re-adding, no remapping.</p>
+        </div>
+        <div class="card">
+          <h3>Live hotkeys</h3>
+          <p>Every scene gets a key automatically — <b>jump between views mid-recording</b> without
+             touching the mouse. Remap anything; the recording follows whatever is on the stage.</p>
+        </div>
+        <div class="card">
+          <h3>A real broadcast deck</h3>
+          <p>Up to <b>8 simultaneous video sources</b>, per-source VU meters, MON/MUTE that behave the
+             way an engineer expects, tally light, measured FPS — in a <b>resizable panel</b> you drag
+             to exactly the width you want.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CRASH-SAFE BAND ============ -->
+    <section id="crashsafe">
+      <div class="bench">
+        <div class="bench-in">
+          <div class="copy">
+            <p class="eyebrow">the reason it exists</p>
+            <h2>Your recording survives <span class="rx">the crash</span>.</h2>
+            <p>Most recorders keep the file in memory and write it when you press stop — so a crash at
+               minute 59 erases minutes 0 through 59. Capturra writes the recording to disk in
+               one-second chunks, continuously, from the moment you press record.</p>
+            <p>If Capturra dies, if Windows dies, if the power dies — you open your recordings folder
+               and the file is there, playable, complete up to the last second before the lights went out.</p>
+          </div>
+          <div class="live" aria-label="Recording telemetry example">
+            <div class="telem">
+              <div class="trow"><span>state</span><b class="rec">● REC</b></div>
+              <div class="trow"><span>streamed to disk</span><b>every 1.0 s</b></div>
+              <div class="trow"><span>survives app crash</span><b>yes</b></div>
+              <div class="trow"><span>survives PC crash</span><b>yes</b></div>
+              <div class="trow"><span>recovery step</span><b>none — file is ready</b></div>
+              <div class="cap">Desktop app only — browsers can't write files while recording, so the
+                included browser version saves on stop instead.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT'S USED ============ -->
+    <section id="how">
+      <div class="seclab"><h2>How it's used</h2><span class="rule"></span><span class="note">real screenshots — this is the actual app</span></div>
+      <div class="steps">
+
+        <div class="step">
+          <div class="txt">
+            <p class="n">STEP 01</p>
+            <h3>Add your sources</h3>
+            <p>Press <code>＋</code> and pick from cameras, capture cards, monitors, and app windows —
+               listed <b>by name</b>, no guessing. Then load the <b>Master audio</b> mixer with your mic,
+               the capture card's line-in, or full system audio. Every source gets its own volume, MUTE,
+               MON toggle, and a live meter.</p>
+          </div>
+          <figure class="shot tall" style="margin:0"><img src="capturra-assets/capturra-deck.webp" alt="The Capturra deck panel: layout scenes, video sources, scene audio with COPY MASTER AUDIO and ADD AUDIO buttons, and master audio with a live VU meter." loading="lazy" /></figure>
+        </div>
+
+        <div class="step">
+          <div class="txt">
+            <p class="n">STEP 02</p>
+            <h3>Build scenes, drag them into place</h3>
+            <p>Add a <b>single</b>, <b>grid</b>, or <b>overlay</b> scene. In an overlay, floating videos
+               drag and resize right on the stage — positions are saved <b>per scene</b>, so a "facecam
+               top-right" scene and a "facecam bottom-left" scene live side by side. Each scene can carry
+               its own audio on top of the master mix.</p>
+          </div>
+          <figure class="shot" style="margin:0">
+            <div class="bar"><i></i><i></i><i></i><span>OVERLAY SCENE — FLOATING SOURCE DRAGGED INTO POSITION</span></div>
+            <img src="capturra-assets/capturra-overlay.webp" alt="An overlay scene in Capturra with a floating picture-in-picture source dragged to the top right of the stage, highlighted with an amber resize handle." loading="lazy" />
+          </figure>
+        </div>
+
+        <div class="step">
+          <div class="txt">
+            <p class="n">STEP 03</p>
+            <h3>Record, and switch views live</h3>
+            <p>Press <code>R</code> and the tally goes red. Hit <code>1</code>, <code>2</code>,
+               <code>3</code> to cut between your scenes <b>while recording</b> — the file captures
+               exactly what's on the stage, master audio riding along the whole way. The status bar
+               shows real measured FPS, not a wish.</p>
+          </div>
+          <figure class="shot" style="margin:0">
+            <div class="bar"><i></i><i></i><i></i><span>RECORDING — GRID SCENE · REC 0:04 · TALLY LIVE</span></div>
+            <img src="capturra-assets/capturra-recording.webp" alt="Capturra actively recording a grid scene: red REC indicator with a running timer, red tally light, and three tiled video sources." loading="lazy" />
+          </figure>
+        </div>
+
+        <div class="step">
+          <div class="txt">
+            <p class="n">STEP 04</p>
+            <h3>Save the whole setup</h3>
+            <p><b>Settings → Config → SAVE CONFIG</b> writes everything to one file. Tomorrow, load it
+               and your scenes, positions, hotkeys, and audio levels come back — sources re-attach by
+               device name automatically. Set your recordings folder once and it's remembered too.</p>
+          </div>
+          <figure class="shot tall" style="margin:0"><img src="capturra-assets/capturra-settings.webp" alt="Capturra settings tab showing the crash-safe record location, per-scene hotkey remapping, and the SAVE CONFIG and LOAD CONFIG buttons." loading="lazy" /></figure>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ DOWNLOAD ============ -->
+    <section id="download">
+      <div class="seclab"><h2>Download</h2><span class="rule"></span><span class="note">v071526a · free · MIT</span></div>
+      <div class="dl">
+        <div class="card">
+          <span class="recomm">Recommended</span>
+          <h3>Standalone — just run it</h3>
+          <p>One portable <b>.exe</b>. No installer, no admin rights, no Node.js, no prompts. Copy it to
+             any Windows PC and double-click.</p>
+          <div class="fname">Capturra-Standalone-071526a.exe</div>
+          <ul>
+            <li><b>Zero setup</b> — devices are listed by name the moment it opens</li>
+            <li><b>Crash-safe recording</b> streamed to a folder you choose</li>
+            <li>True <b>system-audio</b> capture (Windows loopback)</li>
+          </ul>
+          <a class="btn primary" href="https://github.com/KNDPZ/Capturra/releases/download/v071526a/Capturra-Standalone-071526a.exe">⤓ Download standalone (.exe)</a>
+        </div>
+        <div class="card">
+          <h3>Source — build it yourself</h3>
+          <p>The full project folder. Run it with <b>npm start</b>, build your own exe with the included
+             one-click <b>setup.bat</b>, or open <b>capturra.html</b> straight in a browser.</p>
+          <div class="fname">v071526a.zip</div>
+          <ul>
+            <li><b>MIT licensed</b> — read it, modify it, ship it</li>
+            <li>Includes the <b>browser version</b> (Chrome / Edge / Brave / Firefox)</li>
+            <li><b>setup.bat</b> builds the standalone exe with live progress</li>
+          </ul>
+          <a class="btn ghost" href="https://github.com/KNDPZ/Capturra/releases/download/v071526a/v071526a.zip">⤓ Download source (.zip)</a>
+        </div>
+      </div>
+      <p class="smallprint">
+        <b>Honesty corner:</b> this is an unsigned indie build, so Windows SmartScreen may warn the
+        first time you run it — choose <b>More info → Run anyway</b>. If you'd rather not take our word
+        for it, the source is right there in the second download: read it, then build the exe yourself
+        with setup.bat. Nothing leaves your PC — there is no server, no account, and no network code in
+        the app at all.
+      </p>
+    </section>
+
+    <!-- ============ INDIE NOTE ============ -->
+    <section id="indie" style="padding-top:0;">
+      <div class="indie">
+        <p><b>We're not a company trying to sell you something — this is the something.</b> Capturra is
+           built and maintained by the same one-person studio behind everything else on playy.online.
+           It's free because indie tools should exist, MIT-licensed because you should own your tools,
+           and telemetry-free because your recordings are none of our business. If it saves one of your
+           takes from a crash, tell a friend — that's the whole marketing budget.</p>
+        <p class="sig">— playy.online, independent web studio · release v071526a · July 2026</p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>© <span id="year"></span> playy.online — independent web studio</span>
+    <span class="spacer"></span>
+    <a href="/">studio home</a>
+    <a href="#download">download</a>
+    <a href="https://github.com/KNDPZ/Capturra/releases">all releases</a>
+  </div>
+</footer>
+
+<script>
+  // theme: shared key with the main page, so the choice follows the visitor
+  (function(){
+    const btn = document.getElementById("themeBtn");
+    const meta = document.querySelector('meta[name="theme-color"]');
+    function paint(){
+      const dark = document.documentElement.dataset.theme !== "light";
+      btn.textContent = dark ? "☀ Light" : "☾ Dark";
+      if (meta) meta.content = dark ? "#0E131C" : "#FAF9F5";
+    }
+    btn.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem("playy-theme", next); } catch {}
+      paint();
+    });
+    paint();
+  })();
+  document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
