@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capturra</title>
+<style>
+  :root{
+    --bg:#0d1013; --panel:#151a1f; --panel-edge:#232b33; --inset:#0a0d10;
+    --text:#e6ecf1; --muted:#7f8b96; --amber:#ffb454; --red:#ff4d4d; --green:#3ddc84;
+    --radius:10px;
+    --mono:ui-monospace,'SF Mono','Cascadia Code','JetBrains Mono',Menlo,Consolas,monospace;
+    --sans:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;flex-direction:column;min-height:100vh}
+
+  header{display:flex;align-items:baseline;gap:12px;padding:14px 20px 10px;border-bottom:1px solid var(--panel-edge)}
+  header h1{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+  header .sub{font-size:12px;color:var(--muted)}
+  header .rel{margin-left:auto;font-family:var(--mono);font-size:11px;color:#556069;letter-spacing:.1em}
+
+  .layout{flex:1;display:grid;grid-template-columns:1fr 14px var(--rack-w,360px);gap:8px;padding:16px 20px 20px;min-height:0}
+
+  /* ---------- Resizable divider ---------- */
+  .divider{display:flex;align-items:center;justify-content:center;cursor:col-resize;border-radius:6px;user-select:none;touch-action:none;color:#556069;transition:background .15s,color .15s}
+  .divider:hover,.divider.dragging{background:#1d242b;color:var(--amber)}
+  .divider .grip{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:0;line-height:1;pointer-events:none}
+  body.rack-resizing{cursor:col-resize;user-select:none}
+  body.rack-resizing .rack,body.rack-resizing .stage{pointer-events:none}
+
+  /* ---------- Stage ---------- */
+  .stage{position:relative;background:var(--inset);border:1px solid var(--panel-edge);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;min-height:320px}
+  .stage-video{flex:1;position:relative;background:#000;min-height:0}
+  canvas#cv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;touch-action:none}
+  .nosignal{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:var(--mono);color:var(--muted);
+    background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.015) 3px 4px),#000;pointer-events:none}
+  .nosignal .big{font-size:20px;letter-spacing:.3em;color:#4a555f}
+  .nosignal .hint{font-size:12px;letter-spacing:.05em;max-width:38ch;text-align:center;line-height:1.6}
+  .hidden{display:none !important}
+  #hiddenVideos{position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
+
+  .osd{display:flex;align-items:center;font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;background:#10151a;border-top:1px solid var(--panel-edge);padding:0 12px;height:38px;flex-wrap:wrap}
+  .osd .cell{display:flex;align-items:center;gap:7px;padding:0 14px;height:100%;border-right:1px solid var(--panel-edge);color:var(--muted);white-space:nowrap}
+  .osd .cell:first-child{padding-left:2px}
+  .osd .cell:last-child{border-right:none}
+  .osd b{color:var(--text);font-weight:600}
+  .tally{width:9px;height:9px;border-radius:50%;background:#333b42;transition:background .2s,box-shadow .2s}
+  .tally.live{background:var(--red);box-shadow:0 0 8px 1px rgba(255,77,77,.7)}
+  .osd .grow{flex:1}
+  .osd .fs-note{color:#556069;padding-right:0}
+
+  .transport{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border-top:1px solid var(--panel-edge);flex-wrap:wrap}
+  button{font-family:var(--sans);color:var(--text);background:#1d242b;border:1px solid #2c353f;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+  button:hover{background:#242d36}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .btn-start{font-weight:600;border-color:#3a4750;display:flex;align-items:center;gap:8px}
+  .btn-start .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+  .btn-start.stop .dot{background:var(--red)}
+  .btn-rec{font-weight:600;display:flex;align-items:center;gap:8px}
+  .btn-rec .rdot{width:9px;height:9px;border-radius:50%;background:var(--red)}
+  .btn-rec.on{border-color:var(--red);color:var(--red)}
+  .btn-rec.on .rdot{animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:.2}}
+  .rec-time{font-family:var(--mono);font-size:12px;color:var(--red);min-width:5ch}
+  .btn-icon{width:38px;padding:8px 0;text-align:center;font-size:15px;line-height:1}
+  .btn-icon.muted{border-color:var(--red);color:var(--red)}
+  .vol{display:flex;align-items:center;gap:10px;flex:1;min-width:150px}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;background:linear-gradient(to right,var(--amber) var(--fill,80%),#2c353f var(--fill,80%));cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;border-radius:50%;background:var(--text);border:2px solid var(--bg)}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--text);border:2px solid var(--bg)}
+  .vol .pct{font-family:var(--mono);font-size:11px;color:var(--muted);width:4ch;text-align:right}
+  .restore-bars{position:absolute;right:10px;bottom:10px;z-index:5;font-family:var(--mono);font-weight:700;letter-spacing:.08em;padding:6px 12px;font-size:11px;color:var(--muted);background:rgba(21,26,31,.85)}
+  .restore-bars:hover{color:var(--text)}
+
+  /* ---------- Rack ---------- */
+  .rack{background:var(--panel);border:1px solid var(--panel-edge);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:15px;overflow-y:auto}
+  .group{display:flex;flex-direction:column;gap:8px}
+  .group > label,.group > .glabel{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  select{width:100%;background:var(--inset);color:var(--text);border:1px solid #2c353f;border-radius:8px;padding:9px 10px;font-size:13px;font-family:var(--sans)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .note{font-size:11.5px;line-height:1.55;color:var(--muted);border-left:2px solid var(--amber);padding:2px 0 2px 10px}
+  .apply{width:100%;font-weight:600}
+  .rack hr{border:none;border-top:1px solid var(--panel-edge)}
+  .error{font-size:12px;line-height:1.5;color:#ffb0b0;background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.35);border-radius:8px;padding:9px 11px;word-break:break-all}
+  .error.info{color:#b9f0cd;background:rgba(61,220,132,.07);border-color:rgba(61,220,132,.35)}
+
+  .seg{display:grid;background:var(--inset);border:1px solid #2c353f;border-radius:8px;overflow:hidden}
+  .seg.c2{grid-template-columns:1fr 1fr}
+  .seg button{background:transparent;border:none;border-radius:0;padding:8px 0;font-size:12.5px;color:var(--muted)}
+  .seg button.on{background:#26303a;color:var(--text);font-weight:600}
+
+  /* rack tabs — sticky so DECK / SETTINGS never scroll out of view or get hidden by menus */
+  .rack-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--inset);border:1px solid #2c353f;border-radius:8px;overflow:hidden;position:sticky;top:0;z-index:10;box-shadow:0 -16px 0 0 var(--panel),0 4px 10px rgba(0,0,0,.35)}
+  .rack-tabs button{background:transparent;border:none;border-radius:0;padding:9px 0;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+  .rack-tabs button.on{background:#26303a;color:var(--amber)}
+
+  /* source & scene rows */
+  .src-list{display:flex;flex-direction:column;gap:6px}
+  .src-row{background:var(--inset);border:1px solid #2c353f;border-radius:8px;padding:7px 9px;display:flex;flex-direction:column;gap:6px}
+  .src-row.active{border-color:var(--amber)}
+  .src-top{display:flex;align-items:center;gap:7px}
+  .src-name{flex:1;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none}
+  .src-name.click{cursor:pointer}
+  .src-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--amber);border:1px solid rgba(255,180,84,.4);border-radius:4px;padding:1px 5px}
+  .mini{padding:3px 7px;font-size:11px;border-radius:6px;font-family:var(--mono);letter-spacing:.04em}
+  .mini.x:hover{border-color:var(--red);color:var(--red)}
+  .mini.on{border-color:var(--amber);color:var(--amber)}
+  .src-ctl{display:flex;align-items:center;gap:8px}
+  .src-ctl input[type=range]{height:3px}
+  .src-ctl .pct{font-family:var(--mono);font-size:10.5px;color:var(--muted);width:4ch;text-align:right}
+  .meter{height:6px;border-radius:4px;background:#000;border:1px solid #2c353f;overflow:hidden}
+  .meter-fill{height:100%;width:0%;background:linear-gradient(to right,var(--green),var(--amber));transition:width .06s linear}
+  .meter-fill.hot{background:linear-gradient(to right,var(--amber),var(--red))}
+  .add-btn{width:100%;border-style:dashed;color:var(--muted);font-weight:600}
+  .add-btn:hover{color:var(--text)}
+  .menu{background:var(--inset);border:1px solid #2c353f;border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2c353f transparent}
+  .menu::-webkit-scrollbar{width:8px}
+  .menu::-webkit-scrollbar-thumb{background:#2c353f;border-radius:4px}
+  .menu::-webkit-scrollbar-track{background:transparent}
+  .menu .mhead{position:sticky;top:-6px;z-index:1;background:var(--inset);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#556069;padding:8px 6px 5px}
+  .menu button{display:flex;align-items:center;gap:8px;text-align:left;background:transparent;border:none;border-radius:6px;padding:8px;font-size:12.5px;color:var(--text);text-decoration:none;min-height:34px}
+  .menu button:hover{background:#1d242b}
+  .menu .mlabel{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none}
+  .tagchip{flex:none;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--amber);border:1px solid rgba(255,180,84,.45);border-radius:4px;padding:2px 5px;text-decoration:none}
+  .tagchip.dim{color:#8a97a3;border-color:#2c353f}
+  .empty-hint{font-size:12px;color:#556069;text-align:center;padding:6px;border:1px dashed #2c353f;border-radius:8px}
+
+  /* scene editor */
+  .scene-edit{display:flex;flex-direction:column;gap:7px;border-top:1px dashed #2c353f;padding-top:7px}
+  .scene-edit .selabel{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#556069}
+  .scene-edit .chk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text)}
+  .scene-edit .chk input{accent-color:var(--amber)}
+
+  /* settings */
+  .set-row{display:flex;align-items:center;gap:8px}
+  .set-row .path{flex:1;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--inset);border:1px solid #2c353f;border-radius:8px;padding:9px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hk-row{display:flex;align-items:center;gap:8px}
+  .hk-row .hk-name{flex:1;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hk-key{width:86px;text-align:center;font-family:var(--mono);font-size:12px;background:var(--inset);color:var(--amber);border:1px solid #2c353f;border-radius:8px;padding:8px 6px;cursor:pointer}
+  .hk-key:focus{border-color:var(--amber)}
+
+  /* panel collapse */
+  .rack-head{display:flex;align-items:center;justify-content:space-between;margin:-4px 0 -2px}
+  .rack-head .glabel{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .btn-collapse{font-family:var(--mono);font-weight:700;letter-spacing:.1em;padding:5px 10px;font-size:12px;color:var(--muted)}
+  .btn-collapse:hover{color:var(--text)}
+  .layout.collapsed{grid-template-columns:1fr}
+  .layout.collapsed .rack{display:none}
+  .layout.collapsed .divider{display:none}
+  .show-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:50;font-family:var(--mono);font-weight:700;letter-spacing:.1em;font-size:12px;background:var(--panel);border:1px solid var(--panel-edge);border-right:none;border-radius:8px 0 0 8px;padding:14px 8px;color:var(--amber);writing-mode:vertical-rl;text-orientation:mixed}
+  .show-tab:hover{background:#1d242b}
+
+  @media (max-width:900px){
+    .layout{grid-template-columns:1fr;padding:12px}
+    .rack{order:2}.stage{order:1;min-height:260px}
+    .divider{display:none}
+    .show-tab{top:auto;bottom:14px;transform:none;writing-mode:horizontal-tb;padding:9px 12px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Capturra</h1>
+  <span class="sub">multi-source capture · mixer · scenes · recorder</span>
+  <span class="rel">REL 071526A</span>
+</header>
+
+<div class="layout" id="layout">
+
+  <!-- ============ STAGE ============ -->
+  <section class="stage" id="stage" aria-label="Video preview">
+    <div class="stage-video">
+      <canvas id="cv" width="1920" height="1080"></canvas>
+      <div class="nosignal" id="nosignal">
+        <div class="big">NO SIGNAL</div>
+        <div class="hint" id="nosignalHint">Add video sources with ＋ in the options panel, then press Start capture.</div>
+      </div>
+    </div>
+
+    <div class="osd" id="osdBar">
+      <div class="cell"><span class="tally" id="tally"></span><b id="osd-state">STANDBY</b></div>
+      <div class="cell">OUT <b id="osd-res">—</b></div>
+      <div class="cell">FPS <b id="osd-fps">—</b></div>
+      <div class="cell">VIEW <b id="osd-view">single</b></div>
+      <div class="cell">SRC <b id="osd-src">0V/0A</b></div>
+      <div class="cell">AUD <b id="osd-aud">—</b></div>
+      <div class="grow"></div>
+      <div class="cell fs-note" id="osd-dev">no sources</div>
+    </div>
+
+    <button id="showBarsBtn" class="restore-bars hidden" title="Show bottom panel (H)">▲ PANEL</button>
+    <div class="transport" id="transportBar">
+      <button id="startBtn" class="btn-start"><span class="dot"></span><span id="startLabel">Start capture</span></button>
+      <button id="recBtn" class="btn-rec" title="Record to a video file"><span class="rdot"></span><span id="recLabel">Record</span></button>
+      <span class="rec-time hidden" id="recTime">0:00</span>
+      <button id="muteBtn" class="btn-icon" title="Mute monitor audio" aria-label="Mute monitor audio">🔊</button>
+      <div class="vol">
+        <input type="range" id="volume" min="0" max="100" value="80" aria-label="Monitor volume">
+        <span class="pct" id="volPct">80</span>
+      </div>
+      <button id="fsBtn" title="Fullscreen">⛶</button>
+      <button id="hideBarsBtn" class="btn-icon" title="Hide bottom panel (H)">▼</button>
+    </div>
+  </section>
+
+  <!-- ============ RESIZE DIVIDER ============ -->
+  <div class="divider" id="divider" title="Drag left / right to resize the panel" role="separator" aria-orientation="vertical" aria-label="Resize options panel">
+    <span class="grip">⋮</span>
+  </div>
+
+  <!-- ============ CONTROL RACK ============ -->
+  <aside class="rack" aria-label="Capturra settings" id="rack">
+
+    <div class="rack-head">
+      <span class="glabel">Options</span>
+      <button id="hidePanelBtn" class="btn-collapse" title="Hide options panel" aria-label="Hide options panel">&gt;&gt;&gt;</button>
+    </div>
+
+    <div class="rack-tabs">
+      <button id="tabDeckBtn" class="on">DECK</button>
+      <button id="tabSettingsBtn">SETTINGS</button>
+    </div>
+
+    <!-- ======== DECK TAB ======== -->
+    <div id="tabDeck" style="display:contents">
+
+      <div class="group">
+        <span class="glabel">Layout</span>
+        <div class="src-list" id="sceneList"></div>
+        <div class="empty-hint" id="sceneEmpty">No scenes yet — each scene is a saved view (single, grid, or overlay) with its own main source, members, positions, audio, and hotkey</div>
+        <button class="add-btn" id="addSceneBtn">＋ Add scene</button>
+        <div class="menu hidden" id="sceneMenu"></div>
+        <div class="note hidden" id="overlayNote">
+          This overlay is active: drag the floating videos on the stage to move them; drag their bottom-right corner to resize. Positions are saved per scene.
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Video sources</span>
+        <div class="src-list" id="videoList"></div>
+        <div class="empty-hint" id="videoEmpty">No video sources yet</div>
+        <button class="add-btn" id="addVideoBtn">＋ Add video source</button>
+        <div class="menu hidden" id="videoMenu"></div>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Master audio</span>
+        <div class="src-list" id="audioList"></div>
+        <div class="empty-hint" id="audioEmpty">No master audio sources yet</div>
+        <button class="add-btn" id="addAudioBtn">＋ Add master audio source</button>
+        <div class="menu hidden" id="audioMenu"></div>
+        <div class="note">
+          <b>Master audio is shared across every scene</b> — whatever is here and not muted is recorded no matter which scene is on the stage. Each source has its own volume, MUTE, and MON toggle (whether <i>you</i> hear it — it's always recorded). Keep MON off for your own microphone to avoid feedback. A capture card's sound is its <b>mic/line-in</b> input. Scenes can also carry their own audio — open a scene to add scene audio or copy the master sources into it.
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="row2">
+        <div class="group">
+          <label for="resSel">Output resolution</label>
+          <select id="resSel">
+            <option value="3840x2160">2160p (4K)</option>
+            <option value="2560x1440">1440p</option>
+            <option value="1920x1080" selected>1080p</option>
+            <option value="1280x720">720p</option>
+            <option value="854x480">480p</option>
+          </select>
+        </div>
+        <div class="group">
+          <label for="fpsSel">FPS</label>
+          <select id="fpsSel">
+            <option value="24">24</option>
+            <option value="30" selected>30</option>
+            <option value="50">50</option>
+            <option value="60">60</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="group">
+        <label for="arSel">Aspect ratio</label>
+        <select id="arSel">
+          <option value="auto">Auto (16:9)</option>
+          <option value="16:9">16:9 widescreen</option>
+          <option value="4:3">4:3 classic</option>
+          <option value="21:9">21:9 ultrawide</option>
+          <option value="1:1">1:1 square</option>
+        </select>
+      </div>
+
+      <button id="applyBtn" class="apply">Apply settings</button>
+
+      <button id="permBtn" class="apply hidden" style="border-color:var(--amber);color:var(--amber)">🔓 Request device access</button>
+      <div class="note hidden" id="permNote" style="border-color:var(--amber)"></div>
+
+    </div><!-- /tabDeck -->
+
+    <!-- ======== SETTINGS TAB ======== -->
+    <div id="tabSettings" class="hidden" style="display:contents">
+
+      <div class="group">
+        <span class="glabel">Recording</span>
+        <label for="recDirBtn" style="font-family:var(--sans);font-size:12px;color:var(--muted);text-transform:none;letter-spacing:0">Record location</label>
+        <div class="set-row">
+          <span class="path" id="recDirLabel">—</span>
+          <button id="recDirBtn" class="mini">CHOOSE…</button>
+        </div>
+        <div class="note" id="recSafetyNote"></div>
+      </div>
+
+      <hr>
+
+      <div class="group">
+        <span class="glabel">Hotkeys</span>
+        <div class="src-list" id="hotkeyList"></div>
+        <div class="note">
+          Click a key box, then press the key you want. Esc clears it. New scenes get the next free key automatically. Reserved: Space (start/stop), R (record), M (mute), F (fullscreen), H (panel).
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="group">
+        <span class="glabel">Config</span>
+        <div class="row2">
+          <button id="saveConfigBtn" class="mini" style="padding:9px 0;font-size:12px">SAVE CONFIG</button>
+          <button id="loadConfigBtn" class="mini" style="padding:9px 0;font-size:12px">LOAD CONFIG</button>
+        </div>
+        <input type="file" id="configFileInput" accept=".json,application/json" class="hidden">
+        <div class="note">
+          <b>Save config</b> writes your whole setup to a file: scenes (type, name, hotkey, main source, members, positions), master and per-scene audio (volume / MUTE / MON), output settings, and hotkeys. <b>Load config</b> restores it in a new session — sources are re-attached by device name, so there's no need to re-arrange, re-add, or remap anything. Monitors / windows may need one re-pick if their names changed.
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="group">
+        <span class="glabel">About</span>
+        <div class="note" style="border-color:#3a4750">
+          Capturra release <b>071526A</b>. Save your setup with Settings → Config; the record location is remembered by the desktop app.
+        </div>
+      </div>
+
+    </div><!-- /tabSettings -->
+
+    <div class="error hidden" id="errBox"></div>
+
+    <div class="note" id="envTip" style="border-color:#3a4750">
+      Running in a browser: monitors/system audio go through the browser's share picker, recordings save to Downloads when you stop, and permission prompts are file:// policy. The desktop app lists monitors by name, streams recordings to disk crash-safely, and never prompts.
+    </div>
+  </aside>
+</div>
+
+<button class="show-tab hidden" id="showPanelBtn" title="Show options panel" aria-label="Show options panel">&lt;&lt;&lt; OPTIONS</button>
+<div id="hiddenVideos"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), g2d = cv.getContext('2d');
+  const nosignal = $('nosignal'), nosignalHint = $('nosignalHint');
+  const startBtn = $('startBtn'), startLabel = $('startLabel');
+  const recBtn = $('recBtn'), recLabel = $('recLabel'), recTime = $('recTime');
+  const muteBtn = $('muteBtn'), volume = $('volume'), volPct = $('volPct');
+  const fsBtn = $('fsBtn'), stage = $('stage');
+  const videoList = $('videoList'), videoEmpty = $('videoEmpty');
+  const audioList = $('audioList'), audioEmpty = $('audioEmpty');
+  const addVideoBtn = $('addVideoBtn'), videoMenu = $('videoMenu');
+  const addAudioBtn = $('addAudioBtn'), audioMenu = $('audioMenu');
+  const sceneList = $('sceneList'), sceneEmpty = $('sceneEmpty');
+  const addSceneBtn = $('addSceneBtn'), sceneMenu = $('sceneMenu'), overlayNote = $('overlayNote');
+  const resSel = $('resSel'), fpsSel = $('fpsSel'), arSel = $('arSel'), applyBtn = $('applyBtn');
+  const errBox = $('errBox'), permBtn = $('permBtn'), permNote = $('permNote'), envTip = $('envTip');
+  const divider = $('divider');
+  const saveConfigBtn = $('saveConfigBtn'), loadConfigBtn = $('loadConfigBtn'), configFileInput = $('configFileInput');
+  const tabDeckBtn = $('tabDeckBtn'), tabSettingsBtn = $('tabSettingsBtn');
+  const tabDeck = $('tabDeck'), tabSettings = $('tabSettings');
+  const recDirLabel = $('recDirLabel'), recDirBtn = $('recDirBtn'), recSafetyNote = $('recSafetyNote');
+  const hotkeyList = $('hotkeyList');
+  const hiddenVideos = $('hiddenVideos');
+  const osdBar = $('osdBar'), transportBar = $('transportBar');
+  const hideBarsBtn = $('hideBarsBtn'), showBarsBtn = $('showBarsBtn');
+  const tally = $('tally');
+  const osd = { state:$('osd-state'), res:$('osd-res'), fps:$('osd-fps'), view:$('osd-view'), src:$('osd-src'), aud:$('osd-aud'), dev:$('osd-dev') };
+
+  const BRIDGE = window.captureDeck || null;   // Electron preload bridge
+  const IS_ELECTRON = !!BRIDGE || /electron/i.test(navigator.userAgent);
+  const RELEASE = (BRIDGE && BRIDGE.release) || '071526a';
+  const MAX_VIDEO = 8;
+  const RESERVED_KEYS = [' ', 'r', 'm', 'f', 'h'];
+
+  let running = false;
+  let videoSources = [];               // {id,label,kind,stream,el}
+  // Audio sources live in ONE pool. owner === null  → MASTER audio (always recorded, shared across scenes).
+  //                                  owner === sceneId → scene audio (recorded/monitored only while that scene is active).
+  let audioSources = [];               // {id,label,kind,stream,gain,gate,monGain,volume,muted,monitor,owner,meterHandle,row}
+  let scenes = [];                     // {id,name,type:'single'|'grid'|'overlay',hotkey,mainId,includeIds:[],items:[{srcId,rect:{x,y,w},z}]}
+  let activeSceneId = null;
+  let accessUnlocked = false;
+  let rafId = null, frameCount = 0, fpsMeasured = 0, fpsTimer = null;
+  let uid = 0;
+
+  const srcById = id => videoSources.find(s => s.id === id);
+  const sceneById = id => scenes.find(s => s.id === id);
+  const activeScene = () => activeSceneId ? sceneById(activeSceneId) : null;
+
+  /* ================= helpers ================= */
+  function showError(m){ errBox.textContent = m; errBox.classList.remove('info'); errBox.classList.remove('hidden'); }
+  function showInfo(m){ errBox.textContent = m; errBox.classList.add('info'); errBox.classList.remove('hidden'); }
+  const clearError = () => errBox.classList.add('hidden');
+
+  function friendlyError(e){
+    switch(e && e.name){
+      case 'NotAllowedError': case 'SecurityError':
+        return 'Permission was blocked (or the share picker was cancelled). Use "Request device access", or allow Camera & Microphone via the 🔒 icon in the address bar.';
+      case 'NotFoundError':
+        return 'No matching device found. Reopen the ＋ menu to rescan. Capture card missing? Close OBS / its own software, and note that non-UVC cards never appear.';
+      case 'NotReadableError':
+        return 'Device is busy — another app is using it. Close it and try again.';
+      case 'OverconstrainedError':
+        return 'The device can\'t deliver the requested settings; closest supported mode was used.';
+      default:
+        return 'Capture failed: ' + ((e && (e.message || e.name)) || e);
+    }
+  }
+
+  // Text tag chips — emoji fonts are unreliable inside Chromium menus.
+  const KIND_TAG = { camera:'CAM', screen:'SCR', window:'WIN', display:'SCR', mic:'MIC', system:'SYS', tab:'APP' };
+  const SCENE_TAG = { single:'SGL', grid:'GRD', overlay:'OVL' };
+  function chip(txt, dim){
+    const s = document.createElement('span');
+    s.className = 'tagchip' + (dim ? ' dim' : '');
+    s.textContent = txt;
+    return s;
+  }
+  function menuItem(tag, label, onClick, dim){
+    const b = document.createElement('button');
+    b.append(chip(tag, dim));
+    const s = document.createElement('span'); s.className = 'mlabel'; s.textContent = label; s.title = label;
+    b.append(s);
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  function closeMenus(){ [videoMenu, audioMenu, sceneMenu].forEach(m => m.classList.add('hidden')); }
+
+  /* ================= audio engine ================= */
+  let actx = null, masterGain = null, recDest = null, masterMuted = false;
+  function ensureAudio(){
+    if (!actx){
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = actx.createGain();
+      masterGain.gain.value = volume.value / 100;
+      masterGain.connect(actx.destination);
+      recDest = actx.createMediaStreamDestination();
+    }
+    if (actx.state === 'suspended') actx.resume().catch(()=>{});
+    return actx;
+  }
+
+  function attachMeter(node, fillEl){
+    const an = actx.createAnalyser();
+    an.fftSize = 512;
+    node.connect(an);
+    const buf = new Uint8Array(an.fftSize);
+    let raf, stopped = false;
+    (function tick(){
+      if (stopped) return;
+      an.getByteTimeDomainData(buf);
+      let s = 0;
+      for (let i = 0; i < buf.length; i++){ const v = (buf[i]-128)/128; s += v*v; }
+      const pct = Math.min(100, Math.sqrt(s/buf.length) * 320);
+      fillEl.style.width = pct.toFixed(1) + '%';
+      fillEl.classList.toggle('hot', pct > 82);
+      raf = requestAnimationFrame(tick);
+    })();
+    return { stop(){ stopped = true; cancelAnimationFrame(raf); try{node.disconnect(an);}catch(_){}} };
+  }
+
+  const rawAudio = id => ({ deviceId:{exact:id}, echoCancellation:false, noiseSuppression:false, autoGainControl:false });
+
+  function addAudioFromStream(stream, label, kind, owner = null){
+    ensureAudio();
+    const track = stream.getAudioTracks()[0];
+    if (!track){ showError('That source has no audio track. When using the share picker, tick "Share audio".'); return null; }
+    const src = actx.createMediaStreamSource(new MediaStream([track]));
+    const gain = actx.createGain();     // volume / mute
+    const gate = actx.createGain();     // 1 for master, or 1 only while the owning scene is active
+    const monGain = actx.createGain();
+    const cardish = /capture|cam link|hdmi|line|game|grabber/i.test(label);
+    const monitor = kind === 'mic' ? cardish : false;
+    src.connect(gain);
+    gain.connect(gate);
+    gate.connect(recDest);
+    gate.connect(monGain);
+    monGain.connect(masterGain);
+    monGain.gain.value = monitor ? 1 : 0;
+    gate.gain.value = (owner === null || owner === activeSceneId) ? 1 : 0;
+
+    const a = { id:'a'+(++uid), label, kind, stream, gain, gate, monGain, volume:100, muted:false, monitor, owner, meterHandle:null, row:null };
+    track.addEventListener('ended', () => removeAudio(a.id));
+    audioSources.push(a);
+    buildAudioRow(a, gain);
+    renderAudioList();
+    updateOSD();
+    return a;
+  }
+
+  // Scene audio is live only while its scene is on the stage; master audio is always live.
+  function updateSceneAudioGates(){
+    audioSources.forEach(a => {
+      a.gate.gain.value = (a.owner === null || a.owner === activeSceneId) ? 1 : 0;
+    });
+  }
+
+  function buildAudioRow(a, gainNodeForMeter){
+    const row = document.createElement('div'); row.className = 'src-row';
+    const top = document.createElement('div'); top.className = 'src-top';
+    const name = document.createElement('span'); name.className = 'src-name'; name.textContent = a.label; name.title = a.label;
+
+    const monBtn = document.createElement('button'); monBtn.className = 'mini' + (a.monitor ? ' on' : '');
+    monBtn.textContent = 'MON'; monBtn.title = 'Monitor: whether YOU hear this source (always recorded)';
+    monBtn.addEventListener('click', () => {
+      a.monitor = !a.monitor;
+      a.monGain.gain.value = a.monitor ? 1 : 0;
+      monBtn.classList.toggle('on', a.monitor);
+    });
+
+    const muteB = document.createElement('button'); muteB.className = 'mini';
+    muteB.textContent = 'MUTE'; muteB.title = 'Mute this source (affects recording too)';
+    const paintMute = () => {
+      muteB.style.color = a.muted ? 'var(--red)' : '';
+      muteB.style.borderColor = a.muted ? 'var(--red)' : '';
+    };
+    paintMute();
+    muteB.addEventListener('click', () => {
+      a.muted = !a.muted;
+      a.gain.gain.value = a.muted ? 0 : a.volume/100;
+      paintMute();
+    });
+
+    const del = document.createElement('button'); del.className = 'mini x'; del.textContent = '✕'; del.title = 'Remove source';
+    del.addEventListener('click', () => removeAudio(a.id));
+
+    top.append(chip(KIND_TAG[a.kind] || 'AUD'), name, monBtn, muteB, del);
+
+    const ctl = document.createElement('div'); ctl.className = 'src-ctl';
+    const rng = document.createElement('input'); rng.type = 'range'; rng.min = 0; rng.max = 100; rng.value = a.volume;
+    rng.setAttribute('aria-label', 'Volume for ' + a.label);
+    const pct = document.createElement('span'); pct.className = 'pct'; pct.textContent = a.volume;
+    rng.addEventListener('input', () => {
+      a.volume = Number(rng.value);
+      if (!a.muted) a.gain.gain.value = a.volume/100;
+      pct.textContent = a.volume;
+      rng.style.setProperty('--fill', a.volume + '%');
+    });
+    rng.style.setProperty('--fill', a.volume + '%');
+    ctl.append(rng, pct);
+
+    const meter = document.createElement('div'); meter.className = 'meter';
+    const fill = document.createElement('div'); fill.className = 'meter-fill'; meter.append(fill);
+    a.meterHandle = attachMeter(gainNodeForMeter, fill);
+
+    row.append(top, ctl, meter);
+    a.row = row;
+  }
+
+  function removeAudio(id){
+    const i = audioSources.findIndex(s => s.id === id);
+    if (i < 0) return;
+    const a = audioSources[i];
+    a.meterHandle?.stop();
+    try{ a.gain.disconnect(); a.gate.disconnect(); a.monGain.disconnect(); }catch(_){}
+    a.stream.getTracks().forEach(t => t.stop());
+    audioSources.splice(i,1);
+    renderAudioList(); updateOSD();
+    if (a.owner) renderScenes();   // refresh the owning scene's editor
+  }
+
+  const masterAudio = () => audioSources.filter(a => a.owner === null);
+  const sceneAudio = sceneId => audioSources.filter(a => a.owner === sceneId);
+
+  function renderAudioList(){
+    audioList.innerHTML = '';
+    masterAudio().forEach(a => audioList.append(a.row));
+    audioEmpty.classList.toggle('hidden', masterAudio().length > 0);
+  }
+
+  // Shared audio-source picker. owner === null → master; owner === sceneId → that scene's own audio.
+  async function populateAudioMenu(menuEl, owner){
+    menuEl.innerHTML = '';
+
+    const head1 = document.createElement('div'); head1.className = 'mhead'; head1.textContent = 'PC / app audio';
+    menuEl.append(head1);
+    menuEl.append(menuItem('SYS', 'System audio (everything the PC plays)',
+      () => { menuEl.classList.add('hidden'); addSystemAudio(owner); }));
+    menuEl.append(menuItem('APP',
+      IS_ELECTRON ? 'App / window audio (picker)' : 'App / browser-tab audio (picker — tick "Share audio")',
+      () => { menuEl.classList.add('hidden'); addTabAudio(owner); }));
+
+    const head2 = document.createElement('div'); head2.className = 'mhead'; head2.textContent = 'Microphones / line-in';
+    menuEl.append(head2);
+
+    let devs = [];
+    try { devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput'); } catch(_){}
+    if (!devs.length){
+      menuEl.append(menuItem('—', 'No inputs visible — click to grant access',
+        () => { menuEl.classList.add('hidden'); requestAccess(false); }, true));
+    }
+    devs.forEach((d,i) => {
+      const label = d.label || `Audio input ${i+1}`;
+      menuEl.append(menuItem('MIC', label, async () => {
+        menuEl.classList.add('hidden');
+        try {
+          const ms = await navigator.mediaDevices.getUserMedia({ audio: rawAudio(d.deviceId) });
+          addAudioFromStream(ms, label, 'mic', owner);
+          if (owner) renderScenes();
+        } catch(e){ showError(friendlyError(e)); }
+      }));
+    });
+  }
+
+  async function openAudioMenu(){
+    if (!audioMenu.classList.contains('hidden')) { audioMenu.classList.add('hidden'); return; }
+    closeMenus();
+    audioMenu.classList.remove('hidden');
+    await populateAudioMenu(audioMenu, null);
+  }
+
+  // Copy every master source into a scene as an independent clone (own volume / MUTE / MON).
+  function copyMasterToScene(sceneId){
+    const masters = masterAudio();
+    if (!masters.length){ showError('Master audio is empty — nothing to copy. Add master sources first.'); return; }
+    let copied = 0;
+    masters.forEach(m => {
+      // Skip if this scene already has a copy of the same-named source
+      if (sceneAudio(sceneId).some(a => a.label === m.label)) return;
+      const track = m.stream.getAudioTracks()[0];
+      if (!track) return;
+      let clone;
+      try { clone = new MediaStream([track.clone()]); } catch(_){ return; }
+      const a = addAudioFromStream(clone, m.label, m.kind, sceneId);
+      if (!a) return;
+      a.volume = m.volume; a.muted = m.muted; a.monitor = false;   // MON off on copies to avoid double monitoring
+      a.gain.gain.value = a.muted ? 0 : a.volume/100;
+      a.monGain.gain.value = 0;
+      buildAudioRowRefresh(a);
+      copied++;
+    });
+    renderScenes();
+    if (copied) showInfo(`Copied ${copied} master audio source${copied>1?'s':''} into this scene.`);
+  }
+
+  // Rebuild a row after programmatic state changes (used by copy + config load)
+  function buildAudioRowRefresh(a){
+    a.meterHandle?.stop();
+    buildAudioRow(a, a.gain);
+    if (a.owner === null) renderAudioList();
+  }
+
+  async function addSystemAudio(owner = null){
+    clearError();
+    try {
+      let ms;
+      if (IS_ELECTRON){
+        ms = await navigator.mediaDevices.getUserMedia({
+          audio: { mandatory: { chromeMediaSource: 'desktop' } },
+          video: { mandatory: { chromeMediaSource: 'desktop' } }
+        });
+        ms.getVideoTracks().forEach(t => t.stop());
+      } else {
+        ms = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+        });
+        ms.getVideoTracks().forEach(t => t.stop());
+        if (!ms.getAudioTracks().length){
+          showError('No audio was shared. In the picker choose "Entire screen" and tick "Also share system audio".');
+          return;
+        }
+      }
+      addAudioFromStream(ms, 'System audio (PC)', 'system', owner);
+      if (owner) renderScenes();
+    } catch(e){ showError(friendlyError(e)); }
+  }
+
+  async function addTabAudio(owner = null){
+    clearError();
+    try {
+      const ms = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+      });
+      ms.getVideoTracks().forEach(t => t.stop());
+      if (!ms.getAudioTracks().length){
+        showError('No audio came with that pick. Choose a browser tab (best) or entire screen, and tick "Share audio". Windows can\'t hand out most individual apps\' audio — use System audio for those.');
+        return;
+      }
+      const lbl = ms.getAudioTracks()[0].label || 'App / tab audio';
+      addAudioFromStream(ms, lbl, 'tab', owner);
+      if (owner) renderScenes();
+    } catch(e){ showError(friendlyError(e)); }
+  }
+
+  /* ================= video sources ================= */
+  function makeVideoEl(stream){
+    const el = document.createElement('video');
+    el.muted = true; el.playsInline = true; el.srcObject = stream;
+    hiddenVideos.append(el);
+    el.play().catch(()=>{});
+    return el;
+  }
+
+  function addVideoFromStream(stream, label, kind){
+    if (videoSources.length >= MAX_VIDEO){ showError(`Maximum ${MAX_VIDEO} video sources.`); stream.getTracks().forEach(t=>t.stop()); return; }
+    const v = { id:'v'+(++uid), label, kind, stream, el: makeVideoEl(stream) };
+    stream.getVideoTracks()[0]?.addEventListener('ended', () => removeVideo(v.id));
+    videoSources.push(v);
+    renderVideoList(); updateOSD();
+    nosignalHint.textContent = 'Press Start capture.';
+  }
+
+  function removeVideo(id){
+    const i = videoSources.findIndex(s => s.id === id);
+    if (i < 0) return;
+    const v = videoSources[i];
+    v.stream.getTracks().forEach(t => t.stop());
+    v.el.remove();
+    videoSources.splice(i,1);
+    scenes.forEach(sc => {
+      sc.includeIds = sc.includeIds.filter(x => x !== id);
+      sc.items = sc.items.filter(it => it.srcId !== id);
+      if (sc.mainId === id) sc.mainId = videoSources[0]?.id || null;
+    });
+    renderVideoList(); updateOSD();
+  }
+
+  function makeMain(id){
+    const i = videoSources.findIndex(s => s.id === id);
+    if (i <= 0) return;
+    const [v] = videoSources.splice(i,1);
+    videoSources.unshift(v);
+    renderVideoList();
+  }
+
+  function renderVideoList(){
+    videoList.innerHTML = '';
+    videoSources.forEach((v, i) => {
+      const row = document.createElement('div'); row.className = 'src-row';
+      const top = document.createElement('div'); top.className = 'src-top';
+      const name = document.createElement('span'); name.className = 'src-name';
+      name.textContent = v.label; name.title = v.label;
+      top.append(chip(KIND_TAG[v.kind] || 'VID'), name);
+      if (i === 0){
+        const tag = document.createElement('span'); tag.className = 'src-tag'; tag.textContent = 'MAIN';
+        top.append(tag);
+      } else {
+        const star = document.createElement('button'); star.className = 'mini'; star.textContent = 'SET MAIN';
+        star.title = 'Make this the main source for the built-in Single/Grid views';
+        star.addEventListener('click', () => makeMain(v.id));
+        top.append(star);
+      }
+      const del = document.createElement('button'); del.className = 'mini x'; del.textContent = '✕'; del.title = 'Remove source';
+      del.addEventListener('click', () => removeVideo(v.id));
+      top.append(del);
+      row.append(top);
+      videoList.append(row);
+    });
+    videoEmpty.classList.toggle('hidden', videoSources.length > 0);
+    renderScenes();  // scene editors reference the source list
+  }
+
+  async function openVideoMenu(){
+    if (!videoMenu.classList.contains('hidden')) { videoMenu.classList.add('hidden'); return; }
+    closeMenus();
+    videoMenu.innerHTML = '';
+    videoMenu.classList.remove('hidden');
+
+    const camHead = document.createElement('div'); camHead.className = 'mhead'; camHead.textContent = 'Cameras & capture cards';
+    videoMenu.append(camHead);
+    let cams = [];
+    try { cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput'); } catch(_){}
+    if (!cams.length){
+      videoMenu.append(menuItem('—', 'None visible — click to grant access',
+        () => { videoMenu.classList.add('hidden'); requestAccess(false); }, true));
+    }
+    cams.forEach((d,i) => {
+      const label = d.label || `Video device ${i+1}`;
+      videoMenu.append(menuItem('CAM', label, async () => {
+        videoMenu.classList.add('hidden');
+        try {
+          const [w,h] = resSel.value.split('x').map(Number);
+          const ms = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId:{exact:d.deviceId}, width:{ideal:w}, height:{ideal:h}, frameRate:{ideal:Number(fpsSel.value)} }
+          });
+          addVideoFromStream(ms, label, 'camera');
+        } catch(e){ showError(friendlyError(e)); }
+      }));
+    });
+
+    const scrHead = document.createElement('div'); scrHead.className = 'mhead'; scrHead.textContent = 'Monitors & windows';
+    videoMenu.append(scrHead);
+
+    if (BRIDGE?.getSources){
+      let sources = [];
+      try { sources = await BRIDGE.getSources(); } catch(_){}
+      const screens = sources.filter(s => s.kind === 'screen');
+      const wins = sources.filter(s => s.kind === 'window' && s.name && s.name !== 'Capturra').slice(0, 12);
+      for (const s of [...screens, ...wins]){
+        videoMenu.append(menuItem(s.kind === 'screen' ? 'SCR' : 'WIN', s.name, async () => {
+          videoMenu.classList.add('hidden');
+          try {
+            const ms = await navigator.mediaDevices.getUserMedia({
+              audio: false,
+              video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: s.id,
+                       maxWidth: 3840, maxHeight: 2160, maxFrameRate: Number(fpsSel.value) } }
+            });
+            addVideoFromStream(ms, s.name, s.kind);
+          } catch(e){ showError(friendlyError(e)); }
+        }));
+      }
+      if (!screens.length && !wins.length){
+        videoMenu.append(menuItem('—', 'No screens found', () => {}, true));
+      }
+    } else {
+      videoMenu.append(menuItem('SCR', 'Screen or window… (opens the browser picker)', async () => {
+        videoMenu.classList.add('hidden');
+        try {
+          const ms = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate:{ideal:Number(fpsSel.value)} }, audio: false });
+          const lbl = ms.getVideoTracks()[0].label || 'Screen share';
+          addVideoFromStream(ms, lbl, 'display');
+        } catch(e){ if (e.name !== 'NotAllowedError') showError(friendlyError(e)); }
+      }));
+    }
+  }
+
+  addVideoBtn.addEventListener('click', openVideoMenu);
+  addAudioBtn.addEventListener('click', openAudioMenu);
+
+  /* ================= scenes (overlays) ================= */
+  function defaultRect(n){
+    const col = n % 2, rowi = Math.floor(n/2) % 2;
+    return { x: .58 - col*.36, y: .58 - rowi*.36, w: .32 };
+  }
+  function nextFreeKey(){
+    const used = new Set([...scenes.map(s => s.hotkey).filter(Boolean), ...RESERVED_KEYS]);
+    for (const k of '1234567890zxcvbn'){ if (!used.has(k)) return k; }
+    return null;
+  }
+  function sceneName(type){
+    const n = scenes.filter(s => s.type === type).length + 1;
+    return { single:'Single', grid:'Grid', overlay:'Overlay' }[type] + ' ' + n;
+  }
+
+  function createScene(type){
+    const mainId = videoSources[0]?.id || null;
+    const sc = {
+      id:'sc'+(++uid), name: sceneName(type), type, hotkey: nextFreeKey(),
+      mainId,
+      includeIds: type === 'grid'
+        ? videoSources.map(v => v.id)
+        : type === 'overlay'
+          ? videoSources.filter(v => v.id !== mainId).map(v => v.id)
+          : [],
+      items: []
+    };
+    ensureItems(sc);
+    scenes.push(sc);
+    setActiveScene(sc.id);
+    renderScenes(); renderHotkeys();
+  }
+
+  function duplicateScene(id){
+    const src = sceneById(id);
+    if (!src) return;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = 'sc'+(++uid);
+    copy.name = src.name + ' copy';
+    copy.hotkey = nextFreeKey();
+    scenes.splice(scenes.indexOf(src)+1, 0, copy);
+    setActiveScene(copy.id);
+    renderScenes(); renderHotkeys();
+  }
+
+  function removeScene(id){
+    const i = scenes.findIndex(s => s.id === id);
+    if (i < 0) return;
+    scenes.splice(i,1);
+    sceneAudio(id).slice().forEach(a => removeAudio(a.id));   // scene audio goes with the scene
+    if (activeSceneId === id) setActiveScene(null);
+    renderScenes(); renderHotkeys();
+  }
+
+  function ensureItems(sc){
+    if (sc.type !== 'overlay') return;
+    sc.includeIds = sc.includeIds.filter(id => srcById(id) && id !== sc.mainId);
+    sc.items = sc.items.filter(it => sc.includeIds.includes(it.srcId));
+    let z = sc.items.reduce((m,it) => Math.max(m, it.z), 0);
+    sc.includeIds.forEach(sid => {
+      if (!sc.items.find(it => it.srcId === sid)){
+        sc.items.push({ srcId: sid, rect: defaultRect(sc.items.length), z: ++z });
+      }
+    });
+  }
+
+  function setActiveScene(id){
+    activeSceneId = id;
+    const sc = activeScene();
+    if (actx) updateSceneAudioGates();   // scene audio follows the active scene
+    overlayNote.classList.toggle('hidden', !(sc && sc.type === 'overlay'));
+    renderScenes();
+    updateOSD();
+  }
+
+  function openSceneMenu(){
+    if (!sceneMenu.classList.contains('hidden')) { sceneMenu.classList.add('hidden'); return; }
+    closeMenus();
+    sceneMenu.innerHTML = '';
+    sceneMenu.classList.remove('hidden');
+    const head = document.createElement('div'); head.className = 'mhead'; head.textContent = 'New scene type';
+    sceneMenu.append(head);
+    sceneMenu.append(menuItem('SGL', 'Single — one chosen source fills the stage', () => { sceneMenu.classList.add('hidden'); createScene('single'); }));
+    sceneMenu.append(menuItem('GRD', 'Grid — chosen sources tiled', () => { sceneMenu.classList.add('hidden'); createScene('grid'); }));
+    sceneMenu.append(menuItem('OVL', 'Overlay — main video + floating videos', () => { sceneMenu.classList.add('hidden'); createScene('overlay'); }));
+  }
+  addSceneBtn.addEventListener('click', openSceneMenu);
+
+  function sourceSelect(sc){
+    const sel = document.createElement('select');
+    videoSources.forEach(v => sel.append(new Option(v.label, v.id)));
+    if (sc.mainId && srcById(sc.mainId)) sel.value = sc.mainId;
+    sel.addEventListener('change', () => { sc.mainId = sel.value; ensureItems(sc); renderScenes(); });
+    return sel;
+  }
+
+  function renderScenes(){
+    sceneList.innerHTML = '';
+    scenes.forEach(sc => {
+      ensureItems(sc);
+      const row = document.createElement('div');
+      row.className = 'src-row' + (sc.id === activeSceneId ? ' active' : '');
+
+      const top = document.createElement('div'); top.className = 'src-top';
+      const name = document.createElement('span'); name.className = 'src-name click';
+      name.textContent = sc.name; name.title = 'Click to activate';
+      name.addEventListener('click', () => setActiveScene(sc.id === activeSceneId ? null : sc.id));
+      const key = chip(sc.hotkey ? 'KEY ' + sc.hotkey.toUpperCase() : 'NO KEY', !sc.hotkey);
+
+      const ren = document.createElement('button'); ren.className = 'mini'; ren.textContent = '✎'; ren.title = 'Rename';
+      ren.addEventListener('click', () => {
+        const n = prompt('Overlay name:', sc.name);
+        if (n && n.trim()){ sc.name = n.trim(); renderScenes(); renderHotkeys(); }
+      });
+      const dup = document.createElement('button'); dup.className = 'mini'; dup.textContent = 'DUP'; dup.title = 'Duplicate this overlay';
+      dup.addEventListener('click', () => duplicateScene(sc.id));
+      const del = document.createElement('button'); del.className = 'mini x'; del.textContent = '✕'; del.title = 'Delete overlay';
+      del.addEventListener('click', () => removeScene(sc.id));
+
+      top.append(chip(SCENE_TAG[sc.type]), name, key, ren, dup, del);
+      row.append(top);
+
+      if (sc.id === activeSceneId){
+        const ed = document.createElement('div'); ed.className = 'scene-edit';
+        if (!videoSources.length){
+          const l = document.createElement('div'); l.className = 'selabel'; l.textContent = 'Add video sources first';
+          ed.append(l);
+        } else if (sc.type === 'single'){
+          const l = document.createElement('div'); l.className = 'selabel'; l.textContent = 'Main source';
+          ed.append(l, sourceSelect(sc));
+        } else if (sc.type === 'grid'){
+          const l = document.createElement('div'); l.className = 'selabel'; l.textContent = 'Sources in this grid';
+          ed.append(l);
+          videoSources.forEach(v => {
+            const lab = document.createElement('label'); lab.className = 'chk';
+            const cb = document.createElement('input'); cb.type = 'checkbox';
+            cb.checked = sc.includeIds.includes(v.id);
+            cb.addEventListener('change', () => {
+              if (cb.checked) sc.includeIds.push(v.id);
+              else sc.includeIds = sc.includeIds.filter(x => x !== v.id);
+            });
+            lab.append(cb, document.createTextNode(v.label));
+            ed.append(lab);
+          });
+        } else { // overlay
+          const l1 = document.createElement('div'); l1.className = 'selabel'; l1.textContent = 'Main (background) source';
+          ed.append(l1, sourceSelect(sc));
+          const l2 = document.createElement('div'); l2.className = 'selabel'; l2.textContent = 'Floating sources (drag them on the stage)';
+          ed.append(l2);
+          videoSources.filter(v => v.id !== sc.mainId).forEach(v => {
+            const lab = document.createElement('label'); lab.className = 'chk';
+            const cb = document.createElement('input'); cb.type = 'checkbox';
+            cb.checked = sc.includeIds.includes(v.id);
+            cb.addEventListener('change', () => {
+              if (cb.checked) sc.includeIds.push(v.id);
+              else sc.includeIds = sc.includeIds.filter(x => x !== v.id);
+              ensureItems(sc);
+            });
+            lab.append(cb, document.createTextNode(v.label));
+            ed.append(lab);
+          });
+        }
+
+        /* ---- Scene audio: this scene's own sources (recorded only while the scene is active),
+               on top of the always-recorded master audio ---- */
+        const al = document.createElement('div'); al.className = 'selabel';
+        al.textContent = 'Scene audio (recorded only while this scene is active — master audio always records)';
+        ed.append(al);
+        const aList = document.createElement('div'); aList.className = 'src-list';
+        sceneAudio(sc.id).forEach(a => aList.append(a.row));
+        ed.append(aList);
+        if (!sceneAudio(sc.id).length){
+          const eh = document.createElement('div'); eh.className = 'empty-hint';
+          eh.textContent = 'No scene audio — this scene records master audio only';
+          ed.append(eh);
+        }
+        const aRow = document.createElement('div'); aRow.className = 'row2';
+        const copyB = document.createElement('button'); copyB.className = 'mini';
+        copyB.style.cssText = 'padding:8px 0;font-size:11px';
+        copyB.textContent = 'COPY MASTER AUDIO';
+        copyB.title = 'Duplicate every master audio source into this scene with independent volume / MUTE / MON';
+        copyB.addEventListener('click', () => copyMasterToScene(sc.id));
+        const addB = document.createElement('button'); addB.className = 'mini';
+        addB.style.cssText = 'padding:8px 0;font-size:11px';
+        addB.textContent = '＋ ADD AUDIO';
+        addB.title = 'Add an audio source that belongs to this scene only';
+        aRow.append(copyB, addB);
+        ed.append(aRow);
+        const aMenu = document.createElement('div'); aMenu.className = 'menu hidden';
+        ed.append(aMenu);
+        addB.addEventListener('click', async () => {
+          if (!aMenu.classList.contains('hidden')){ aMenu.classList.add('hidden'); return; }
+          closeMenus();
+          aMenu.classList.remove('hidden');
+          await populateAudioMenu(aMenu, sc.id);
+        });
+
+        row.append(ed);
+      }
+      sceneList.append(row);
+    });
+    sceneEmpty.classList.toggle('hidden', scenes.length > 0);
+  }
+
+  /* ================= hotkeys ================= */
+  function applyHotkey(e){
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const sc = scenes.find(s => s.hotkey === k);
+    if (sc){ setActiveScene(sc.id); return true; }
+    return false;
+  }
+
+  function hotkeyRow(label, getKey, setKey){
+    const row = document.createElement('div'); row.className = 'hk-row';
+    const name = document.createElement('span'); name.className = 'hk-name'; name.textContent = label; name.title = label;
+    const inp = document.createElement('input'); inp.className = 'hk-key'; inp.readOnly = true;
+    inp.value = getKey() ? getKey().toUpperCase() : '';
+    inp.placeholder = 'none';
+    inp.title = 'Click, then press a key. Esc clears.';
+    inp.addEventListener('focus', () => { inp.value = ''; inp.placeholder = 'press key'; });
+    inp.addEventListener('blur', () => { inp.value = getKey() ? getKey().toUpperCase() : ''; inp.placeholder = 'none'; });
+    inp.addEventListener('keydown', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'Escape'){ setKey(null); inp.blur(); renderHotkeys(); renderScenes(); return; }
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (RESERVED_KEYS.includes(k)){ showError(`"${k === ' ' ? 'Space' : k.toUpperCase()}" is reserved (Space/R/M/F/H). Pick another key.`); return; }
+      // steal the key from whoever had it
+      scenes.forEach(s => { if (s.hotkey === k) s.hotkey = null; });
+      setKey(k);
+      clearError();
+      inp.blur();
+      renderHotkeys(); renderScenes();
+    });
+    row.append(name, inp);
+    return row;
+  }
+
+  function renderHotkeys(){
+    hotkeyList.innerHTML = '';
+    if (!scenes.length){
+      const eh = document.createElement('div'); eh.className = 'empty-hint';
+      eh.textContent = 'No scenes yet — add scenes in Deck → Layout and their hotkeys will appear here';
+      hotkeyList.append(eh);
+      return;
+    }
+    scenes.forEach(sc => {
+      hotkeyList.append(hotkeyRow(`${sc.type.toUpperCase()}: ${sc.name}`, () => sc.hotkey, k => sc.hotkey = k));
+    });
+  }
+
+  /* ================= rack tabs ================= */
+  function setTab(which){
+    const deck = which === 'deck';
+    tabDeckBtn.classList.toggle('on', deck);
+    tabSettingsBtn.classList.toggle('on', !deck);
+    tabDeck.classList.toggle('hidden', !deck);
+    tabSettings.classList.toggle('hidden', deck);
+  }
+  tabDeckBtn.addEventListener('click', () => setTab('deck'));
+  tabSettingsBtn.addEventListener('click', () => setTab('settings'));
+
+  /* ================= record location ================= */
+  async function refreshRecDir(){
+    if (BRIDGE?.getRecordDir){
+      try { recDirLabel.textContent = await BRIDGE.getRecordDir(); }
+      catch(_){ recDirLabel.textContent = 'Videos folder'; }
+      recSafetyNote.textContent = 'Crash-safe: the recording streams to this folder every second. If the app or PC crashes, everything up to the last second is already saved in the file.';
+    } else {
+      recDirLabel.textContent = 'Browser Downloads folder (saved when you stop)';
+      recDirBtn.disabled = true;
+      recSafetyNote.textContent = 'Browsers only make the file durable when recording stops — crash-safe streaming to a chosen folder needs the Capturra desktop app.';
+    }
+  }
+  recDirBtn.addEventListener('click', async () => {
+    if (!BRIDGE?.chooseRecordDir) return;
+    const dir = await BRIDGE.chooseRecordDir();
+    if (dir) recDirLabel.textContent = dir;
+  });
+
+  /* ================= compositor ================= */
+  function outputSize(){
+    let [w,h] = resSel.value.split('x').map(Number);
+    if (arSel.value !== 'auto'){
+      const [a,b] = arSel.value.split(':').map(Number);
+      h = Math.round(w / (a/b) / 2) * 2;
+    }
+    return [w,h];
+  }
+  function applyOutput(){
+    const [w,h] = outputSize();
+    if (cv.width !== w) cv.width = w;
+    if (cv.height !== h) cv.height = h;
+  }
+
+  function containRect(vw, vh, dx, dy, dw, dh){
+    if (!vw || !vh) return [dx,dy,dw,dh];
+    const s = Math.min(dw/vw, dh/vh);
+    const w = vw*s, h = vh*s;
+    return [dx + (dw-w)/2, dy + (dh-h)/2, w, h];
+  }
+  function coverRect(vw, vh, dw, dh){
+    if (!vw || !vh) return [0,0,dw,dh];
+    const s = Math.max(dw/vw, dh/vh);
+    const w = vw*s, h = vh*s;
+    return [(dw-w)/2, (dh-h)/2, w, h];
+  }
+
+  function itemPxRect(it, src){
+    const W = cv.width, H = cv.height;
+    const vw = src.el.videoWidth || 16, vh = src.el.videoHeight || 9;
+    const w = it.rect.w * W;
+    const h = w * (vh/vw);
+    return { x: it.rect.x * W, y: it.rect.y * H, w, h };
+  }
+
+  let dragState = null; // {it, src, mode:'move'|'resize', dx, dy}
+
+  function drawSingle(src){
+    const [x,y,w,h] = containRect(src.el.videoWidth, src.el.videoHeight, 0,0,cv.width,cv.height);
+    try{ g2d.drawImage(src.el, x,y,w,h); }catch(_){}
+  }
+
+  function drawGrid(srcs){
+    const W = cv.width, H = cv.height;
+    const n = Math.min(srcs.length, MAX_VIDEO);
+    if (!n) return;
+    const cols = n <= 2 ? n : n <= 4 ? 2 : n <= 6 ? 3 : 4;
+    const rows = Math.ceil(n / cols);
+    const cw = W/cols, ch = H/rows;
+    for (let i = 0; i < n; i++){
+      const v = srcs[i];
+      const cx = (i%cols)*cw, cyy = Math.floor(i/cols)*ch;
+      const [x,y,w,h] = containRect(v.el.videoWidth, v.el.videoHeight, cx, cyy, cw, ch);
+      try{ g2d.drawImage(v.el, x,y,w,h); }catch(_){}
+      g2d.strokeStyle = '#232b33'; g2d.lineWidth = 2;
+      g2d.strokeRect(cx+1, cyy+1, cw-2, ch-2);
+      g2d.fillStyle = 'rgba(0,0,0,.55)';
+      const fs = Math.max(12, Math.round(H/50));
+      g2d.fillRect(cx, cyy+ch-fs*1.7, cw, fs*1.7);
+      g2d.fillStyle = '#e6ecf1';
+      g2d.font = `${fs}px ui-monospace, monospace`;
+      g2d.textAlign = 'left';
+      g2d.fillText(v.label.slice(0,40), cx+8, cyy+ch-fs*0.55);
+    }
+  }
+
+  function drawOverlayScene(sc){
+    const main = srcById(sc.mainId) || videoSources[0];
+    if (main){
+      const [mx,my,mw,mh] = coverRect(main.el.videoWidth, main.el.videoHeight, cv.width, cv.height);
+      try{ g2d.drawImage(main.el, mx,my,mw,mh); }catch(_){}
+    }
+    ensureItems(sc);
+    const items = sc.items
+      .map(it => ({ it, src: srcById(it.srcId) }))
+      .filter(x => x.src)
+      .sort((a,b) => a.it.z - b.it.z);
+    for (const {it, src} of items){
+      const r = itemPxRect(it, src);
+      try{ g2d.drawImage(src.el, r.x, r.y, r.w, r.h); }catch(_){}
+      const active = dragState && dragState.it === it;
+      g2d.strokeStyle = active ? '#ffb454' : 'rgba(230,236,241,.55)';
+      g2d.lineWidth = active ? 4 : 2;
+      g2d.strokeRect(r.x, r.y, r.w, r.h);
+      const hs = Math.max(14, cv.width/90);
+      g2d.fillStyle = active ? '#ffb454' : 'rgba(230,236,241,.75)';
+      g2d.fillRect(r.x + r.w - hs, r.y + r.h - hs, hs, hs);
+    }
+  }
+
+  function draw(){
+    const W = cv.width, H = cv.height;
+    g2d.fillStyle = '#000';
+    g2d.fillRect(0,0,W,H);
+    if (!videoSources.length){
+      g2d.fillStyle = '#4a555f';
+      g2d.font = `${Math.round(H/26)}px ui-monospace, monospace`;
+      g2d.textAlign = 'center';
+      g2d.fillText('NO SOURCES — add one with ＋', W/2, H/2);
+      return;
+    }
+    const sc = activeScene();
+    if (!sc){
+      drawSingle(videoSources[0]);   // no scene active: MAIN source fills the stage
+      return;
+    }
+    if (sc.type === 'single'){
+      const s = srcById(sc.mainId) || videoSources[0];
+      if (s) drawSingle(s);
+    } else if (sc.type === 'grid'){
+      const list = sc.includeIds.map(srcById).filter(Boolean);
+      drawGrid(list.length ? list : videoSources);
+    } else {
+      drawOverlayScene(sc);
+    }
+  }
+
+  let lastDraw = 0, frameInterval = 1000/30;
+  function loop(ts){
+    if (ts - lastDraw >= frameInterval - 1){
+      lastDraw = ts;
+      draw();
+      frameCount++;
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  /* --- overlay drag / resize (edits the ACTIVE overlay's own positions) --- */
+  function canvasPoint(e){
+    const r = cv.getBoundingClientRect();
+    const s = Math.min(r.width/cv.width, r.height/cv.height);
+    const ox = (r.width - cv.width*s)/2, oy = (r.height - cv.height*s)/2;
+    return { x: (e.clientX - r.left - ox)/s, y: (e.clientY - r.top - oy)/s };
+  }
+  function overlayHitList(){
+    const sc = activeScene();
+    if (!sc || sc.type !== 'overlay') return [];
+    ensureItems(sc);
+    return sc.items
+      .map(it => ({ it, src: srcById(it.srcId) }))
+      .filter(x => x.src)
+      .sort((a,b) => b.it.z - a.it.z); // topmost first
+  }
+  cv.addEventListener('pointerdown', e => {
+    const hits = overlayHitList();
+    if (!hits.length) return;
+    const p = canvasPoint(e);
+    const hs = Math.max(14, cv.width/90);
+    for (const {it, src} of hits){
+      const r = itemPxRect(it, src);
+      if (p.x >= r.x + r.w - hs && p.x <= r.x + r.w && p.y >= r.y + r.h - hs && p.y <= r.y + r.h){
+        dragState = { it, src, mode:'resize' };
+      } else if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h){
+        dragState = { it, src, mode:'move', dx: p.x - r.x, dy: p.y - r.y };
+      } else continue;
+      const sc = activeScene();
+      it.z = sc.items.reduce((m,i) => Math.max(m,i.z), 0) + 1;
+      cv.setPointerCapture(e.pointerId);
+      e.preventDefault();
+      return;
+    }
+  });
+  cv.addEventListener('pointermove', e => {
+    const hits = overlayHitList();
+    if (!hits.length){ cv.style.cursor = ''; return; }
+    const p = canvasPoint(e);
+    if (dragState){
+      const { it, src } = dragState;
+      const W = cv.width, H = cv.height;
+      if (dragState.mode === 'move'){
+        it.rect.x = Math.min(Math.max((p.x - dragState.dx)/W, -it.rect.w + .04), .96);
+        const r = itemPxRect(it, src);
+        it.rect.y = Math.min(Math.max((p.y - dragState.dy)/H, -(r.h/H) + .04), .96);
+      } else {
+        const r0 = itemPxRect(it, src);
+        it.rect.w = Math.min(Math.max((p.x - r0.x)/W, .08), .95);
+      }
+      e.preventDefault();
+      return;
+    }
+    let cur = '';
+    const hs = Math.max(14, cv.width/90);
+    for (const {it, src} of hits){
+      const r = itemPxRect(it, src);
+      if (p.x >= r.x + r.w - hs && p.x <= r.x + r.w && p.y >= r.y + r.h - hs && p.y <= r.y + r.h){ cur = 'nwse-resize'; break; }
+      if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h){ cur = 'grab'; break; }
+    }
+    cv.style.cursor = cur;
+  });
+  const endDrag = () => { dragState = null; };
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', endDrag);
+
+  /* ================= start / stop ================= */
+  async function start(){
+    clearError();
+    if (!videoSources.length){
+      let cams = [];
+      try { cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput'); } catch(_){}
+      if (cams.length){
+        try {
+          const [w,h] = resSel.value.split('x').map(Number);
+          const ms = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: cams[0].deviceId ? {exact:cams[0].deviceId} : undefined, width:{ideal:w}, height:{ideal:h}, frameRate:{ideal:Number(fpsSel.value)} }
+          });
+          addVideoFromStream(ms, cams[0].label || 'Camera', 'camera');
+        } catch(e){ showError(friendlyError(e)); return; }
+      } else {
+        showError('No video sources. Add one with ＋ Add video source.');
+        return;
+      }
+    }
+    ensureAudio();
+    applyOutput();
+    frameInterval = 1000 / Number(fpsSel.value);
+    running = true;
+    nosignal.classList.add('hidden');
+    setLive(true);
+    startBtn.classList.add('stop');
+    startLabel.textContent = 'Stop capture';
+    if (!rafId){ lastDraw = 0; rafId = requestAnimationFrame(loop); }
+    frameCount = 0; fpsMeasured = 0;
+    if (!fpsTimer) fpsTimer = setInterval(() => { fpsMeasured = frameCount; frameCount = 0; updateOSD(); }, 1000);
+    updateOSD();
+  }
+
+  function stopAll(){
+    if (recorder) stopRecording();
+    running = false;
+    if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
+    if (fpsTimer){ clearInterval(fpsTimer); fpsTimer = null; }
+    videoSources.slice().forEach(v => removeVideo(v.id));
+    audioSources.slice().forEach(a => removeAudio(a.id));
+    g2d.clearRect(0,0,cv.width,cv.height);
+    nosignal.classList.remove('hidden');
+    nosignalHint.textContent = 'Capture stopped. Add sources with ＋ and press Start capture.';
+    setLive(false);
+    startBtn.classList.remove('stop');
+    startLabel.textContent = 'Start capture';
+    updateOSD();
+  }
+
+  function setLive(on){
+    tally.classList.toggle('live', on);
+    if (!recorder){
+      osd.state.textContent = on ? 'LIVE' : 'STANDBY';
+      osd.state.style.color = on ? 'var(--red)' : '';
+    }
+  }
+
+  /* ================= recording (crash-safe in the desktop app) ================= */
+  let recorder = null, recChunks = [], recStart = 0, recTimer = null, recStream = null;
+  let streamingToDisk = false, writeQueue = Promise.resolve();
+
+  function pickMime(){
+    const opts = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+    return opts.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+  }
+  function stamp(){
+    const d = new Date(), p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  }
+
+  async function startRecording(){
+    if (!running) await start();
+    if (!running) return;
+    ensureAudio();
+    clearError();
+
+    streamingToDisk = false;
+    const fileName = `Capturra-${RELEASE}-${stamp()}.webm`;
+    if (BRIDGE?.recStart){
+      try {
+        const res = await BRIDGE.recStart(fileName);
+        if (res && res.path){ streamingToDisk = true; }
+        else showError('Could not open the recording file' + (res && res.error ? ': ' + res.error : '') + ' — falling back to save-on-stop.');
+      } catch(e){ showError('Could not open the recording file: ' + e.message + ' — falling back to save-on-stop.'); }
+    }
+
+    const fps = Number(fpsSel.value);
+    recStream = cv.captureStream(fps);
+    recDest.stream.getAudioTracks().forEach(t => recStream.addTrack(t));
+    try {
+      recorder = new MediaRecorder(recStream, { mimeType: pickMime(), videoBitsPerSecond: 12_000_000 });
+    } catch(e){ showError('Recording not supported here: ' + e.message); recorder = null; return; }
+
+    recChunks = [];
+    writeQueue = Promise.resolve();
+    recorder.ondataavailable = ev => {
+      if (!ev.data.size) return;
+      if (streamingToDisk){
+        // Flush every chunk to disk immediately — this is the crash safety.
+        writeQueue = writeQueue.then(async () => {
+          try { await BRIDGE.recChunk(await ev.data.arrayBuffer()); }
+          catch(_){ /* disk hiccup: keep the chunk in memory as backup */ recChunks.push(ev.data); }
+        });
+      } else {
+        recChunks.push(ev.data);
+      }
+    };
+    recorder.onstop = finishRecording;
+    recorder.start(1000);   // 1-second chunks
+    recStart = Date.now();
+    recBtn.classList.add('on'); recLabel.textContent = 'Stop rec';
+    recTime.classList.remove('hidden');
+    osd.state.textContent = 'REC'; osd.state.style.color = 'var(--red)';
+    recTimer = setInterval(() => {
+      const s = Math.floor((Date.now() - recStart)/1000);
+      recTime.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    }, 500);
+  }
+
+  function stopRecording(){
+    if (!recorder) return;
+    try { recorder.stop(); } catch(_){}
+    clearInterval(recTimer); recTimer = null;
+    recBtn.classList.remove('on'); recLabel.textContent = 'Record';
+    recTime.classList.add('hidden'); recTime.textContent = '0:00';
+    osd.state.textContent = running ? 'LIVE' : 'STANDBY';
+    osd.state.style.color = running ? 'var(--red)' : '';
+  }
+
+  async function finishRecording(){
+    recStream?.getTracks().forEach(t => { if (t.kind === 'video') t.stop(); });
+    recStream = null;
+    recorder = null;
+    if (streamingToDisk){
+      await writeQueue;
+      try {
+        const r = await BRIDGE.recStop();
+        showInfo('Recording saved: ' + (r && r.path ? r.path : 'done'));
+      } catch(e){ showError('Recording finalize error: ' + e.message); }
+      streamingToDisk = false;
+      recChunks = [];
+      return;
+    }
+    const blob = new Blob(recChunks, { type: 'video/webm' });
+    recChunks = [];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Capturra-${RELEASE}-${stamp()}.webm`;
+    document.body.append(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  }
+
+  recBtn.addEventListener('click', () => recorder ? stopRecording() : startRecording());
+
+  /* ================= settings apply ================= */
+  applyBtn.addEventListener('click', () => {
+    clearError();
+    applyOutput();
+    const [w,h] = resSel.value.split('x').map(Number);
+    const fps = Number(fpsSel.value);
+    frameInterval = 1000 / fps;
+    videoSources.forEach(v => {
+      if (v.kind !== 'camera') return;
+      const t = v.stream.getVideoTracks()[0];
+      t?.applyConstraints({ width:{ideal:w}, height:{ideal:h}, frameRate:{ideal:fps} }).catch(()=>{});
+    });
+    if (recorder) showError('Note: resolution changes apply to the preview immediately, but the file being recorded keeps the size it started with. Stop and re-start recording for the new size.');
+    updateOSD();
+  });
+
+  /* ================= OSD ================= */
+  function updateOSD(){
+    osd.res.textContent = `${cv.width}×${cv.height}`;
+    osd.fps.textContent = running ? (fpsMeasured || '…') : '—';
+    const sc = activeScene();
+    osd.view.textContent = sc ? sc.name.slice(0,16) : 'main';
+    const liveAudio = masterAudio().length + (sc ? sceneAudio(sc.id).length : 0);
+    osd.src.textContent = `${videoSources.length}V/${liveAudio}A`;
+    const anyAudio = audioSources.length > 0;
+    osd.aud.textContent = !anyAudio ? 'OFF' : (masterMuted ? 'MON MUTED' : 'ON');
+    osd.aud.style.color = anyAudio && masterMuted ? 'var(--red)' : '';
+    osd.dev.textContent = videoSources[0] ? videoSources[0].label.slice(0,30) : 'no sources';
+  }
+
+  /* ================= master volume / mute ================= */
+  function paintVol(){ volume.style.setProperty('--fill', volume.value + '%'); volPct.textContent = volume.value; }
+  volume.addEventListener('input', () => {
+    if (masterGain && !masterMuted) masterGain.gain.value = volume.value/100;
+    if (masterMuted && Number(volume.value) > 0) toggleMasterMute(false);
+    paintVol();
+  });
+  function toggleMasterMute(force){
+    masterMuted = typeof force === 'boolean' ? force : !masterMuted;
+    if (masterGain) masterGain.gain.value = masterMuted ? 0 : volume.value/100;
+    muteBtn.textContent = masterMuted ? '🔇' : '🔊';
+    muteBtn.classList.toggle('muted', masterMuted);
+    muteBtn.title = masterMuted ? 'Unmute monitor audio' : 'Mute monitor audio';
+    updateOSD();
+  }
+  muteBtn.addEventListener('click', () => toggleMasterMute());
+  document.addEventListener('pointerdown', () => { if (actx) ensureAudio(); });
+
+  /* ================= panel / bars / fullscreen / keys ================= */
+  const layout = $('layout'), hidePanelBtn = $('hidePanelBtn'), showPanelBtn = $('showPanelBtn');
+  function setPanel(visible){
+    layout.classList.toggle('collapsed', !visible);
+    showPanelBtn.classList.toggle('hidden', visible);
+    if (visible) hidePanelBtn.focus(); else showPanelBtn.focus();
+  }
+  hidePanelBtn.addEventListener('click', () => setPanel(false));
+  showPanelBtn.addEventListener('click', () => setPanel(true));
+
+  function setBars(visible){
+    osdBar.classList.toggle('hidden', !visible);
+    transportBar.classList.toggle('hidden', !visible);
+    showBarsBtn.classList.toggle('hidden', visible);
+  }
+  hideBarsBtn.addEventListener('click', () => setBars(false));
+  showBarsBtn.addEventListener('click', () => setBars(true));
+
+  fsBtn.addEventListener('click', async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await stage.requestFullscreen();
+    } catch(e){ showError('Fullscreen was blocked: ' + e.message); }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    fsBtn.textContent = document.fullscreenElement ? '⛶ Exit' : '⛶';
+  });
+
+  document.addEventListener('keydown', e => {
+    const tag = document.activeElement?.tagName;
+    if (['SELECT','INPUT','BUTTON','TEXTAREA'].includes(tag)) return;
+    if (e.key === 'm' || e.key === 'M') return toggleMasterMute();
+    if (e.key === 'f' || e.key === 'F') return fsBtn.click();
+    if (e.key === 'r' || e.key === 'R') return recBtn.click();
+    if (e.key === 'h' || e.key === 'H') return setBars(osdBar.classList.contains('hidden'));
+    if (e.code === 'Space'){ e.preventDefault(); return startBtn.click(); }
+    if (applyHotkey(e)) e.preventDefault();
+  });
+
+  startBtn.addEventListener('click', () => running ? stopAll() : start());
+
+  /* ================= resizable panel divider ================= */
+  const RACK_MIN = 260, RACK_MAX = 720;
+  function setRackW(px){
+    const w = Math.min(RACK_MAX, Math.max(RACK_MIN, Math.round(px)));
+    layout.style.setProperty('--rack-w', w + 'px');
+    try{ localStorage.setItem('capturra-rack-w', String(w)); }catch(_){}
+  }
+  try{
+    const saved = Number(localStorage.getItem('capturra-rack-w'));
+    if (saved) setRackW(saved);
+  }catch(_){}
+  divider.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    divider.setPointerCapture(e.pointerId);
+    divider.classList.add('dragging');
+    document.body.classList.add('rack-resizing');
+    const onMove = ev => {
+      // rack width = distance from the pointer to the layout's right inner edge
+      const rect = layout.getBoundingClientRect();
+      setRackW(rect.right - 20 /* layout right padding */ - ev.clientX - 7 /* half of divider */);
+    };
+    const onUp = () => {
+      divider.classList.remove('dragging');
+      document.body.classList.remove('rack-resizing');
+      divider.removeEventListener('pointermove', onMove);
+      divider.removeEventListener('pointerup', onUp);
+      divider.removeEventListener('pointercancel', onUp);
+    };
+    divider.addEventListener('pointermove', onMove);
+    divider.addEventListener('pointerup', onUp);
+    divider.addEventListener('pointercancel', onUp);
+  });
+
+  /* ================= save / load config ================= */
+  // A config is the whole session blueprint: output settings, master audio,
+  // video sources, and every scene (type, name, hotkey, main, members,
+  // positions, and the scene's own audio). Devices are saved by NAME and
+  // re-attached by name on load, so a saved setup survives new sessions.
+  function snapshotConfig(){
+    const srcLabel = id => srcById(id)?.label || null;
+    const audioSnap = a => ({ label:a.label, kind:a.kind, volume:a.volume, muted:a.muted, monitor:a.monitor });
+    return {
+      app: 'capturra',
+      release: RELEASE,
+      savedAt: new Date().toISOString(),
+      output: { res: resSel.value, fps: fpsSel.value, ar: arSel.value },
+      monitor: { volume: Number(volume.value), muted: masterMuted },
+      videoSources: videoSources.map(v => ({ label:v.label, kind:v.kind })),
+      masterAudio: masterAudio().map(audioSnap),
+      scenes: scenes.map(sc => ({
+        name: sc.name, type: sc.type, hotkey: sc.hotkey,
+        main: srcLabel(sc.mainId),
+        include: sc.includeIds.map(srcLabel).filter(Boolean),
+        items: sc.items.map(it => ({ src:srcLabel(it.srcId), rect:it.rect, z:it.z })).filter(x => x.src),
+        audio: sceneAudio(sc.id).map(audioSnap),
+      })),
+      activeScene: activeScene()?.name || null,
+    };
+  }
+
+  function saveConfigToFile(){
+    const cfg = snapshotConfig();
+    const blob = new Blob([JSON.stringify(cfg, null, 2)], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Capturra-config-${RELEASE}-${stamp()}.json`;
+    document.body.append(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+    showInfo('Config saved. Load it any time with Settings → Config → LOAD CONFIG.');
+  }
+
+  async function restoreAudioSource(sa, owner, micDevs, missing){
+    try {
+      if (sa.kind === 'mic'){
+        const d = micDevs.find(x => x.label === sa.label);
+        if (!d){ missing.push(`audio "${sa.label}"`); return; }
+        const ms = await navigator.mediaDevices.getUserMedia({ audio: rawAudio(d.deviceId) });
+        const a = addAudioFromStream(ms, sa.label, 'mic', owner);
+        if (a){
+          a.volume = sa.volume ?? 100; a.muted = !!sa.muted; a.monitor = !!sa.monitor;
+          a.gain.gain.value = a.muted ? 0 : a.volume/100;
+          a.monGain.gain.value = a.monitor ? 1 : 0;
+          buildAudioRowRefresh(a);
+        }
+      } else {
+        missing.push(`audio "${sa.label}" (${sa.kind} needs the share picker — re-add it manually)`);
+      }
+    } catch(e){ missing.push(`audio "${sa.label}" (${(e && e.name) || 'error'})`); }
+  }
+
+  async function applyConfig(cfg){
+    if (!cfg || cfg.app !== 'capturra'){ showError('That file is not a Capturra config.'); return; }
+    clearError();
+    const missing = [];
+
+    // A loaded config replaces the current session setup
+    scenes.slice().forEach(sc => removeScene(sc.id));
+    audioSources.slice().forEach(a => removeAudio(a.id));
+    videoSources.slice().forEach(v => removeVideo(v.id));
+
+    // Output settings
+    if (cfg.output){
+      if ([...resSel.options].some(o => o.value === cfg.output.res)) resSel.value = cfg.output.res;
+      if ([...fpsSel.options].some(o => o.value === String(cfg.output.fps))) fpsSel.value = String(cfg.output.fps);
+      if ([...arSel.options].some(o => o.value === cfg.output.ar)) arSel.value = cfg.output.ar;
+      applyOutput();
+      frameInterval = 1000 / Number(fpsSel.value);
+    }
+    if (cfg.monitor){
+      volume.value = cfg.monitor.volume ?? 80;
+      paintVol();
+      if (masterGain && !masterMuted) masterGain.gain.value = volume.value/100;
+      if (!!cfg.monitor.muted !== masterMuted) toggleMasterMute(!!cfg.monitor.muted);
+    }
+
+    // Device inventory for name matching
+    let camDevs = [], micDevs = [];
+    try {
+      const devs = await navigator.mediaDevices.enumerateDevices();
+      camDevs = devs.filter(d => d.kind === 'videoinput');
+      micDevs = devs.filter(d => d.kind === 'audioinput');
+    } catch(_){}
+    let deskSources = [];
+    if (BRIDGE?.getSources){ try{ deskSources = await BRIDGE.getSources(); }catch(_){} }
+
+    // Video sources, re-attached by name
+    const labelMap = {};   // saved label -> new source id
+    for (const sv of (cfg.videoSources || [])){
+      if (videoSources.length >= MAX_VIDEO){ missing.push(`video "${sv.label}" (max ${MAX_VIDEO} reached)`); continue; }
+      try {
+        if (sv.kind === 'camera'){
+          const d = camDevs.find(x => x.label === sv.label);
+          if (!d){ missing.push(`camera "${sv.label}"`); continue; }
+          const [w,h] = resSel.value.split('x').map(Number);
+          const ms = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId:{exact:d.deviceId}, width:{ideal:w}, height:{ideal:h}, frameRate:{ideal:Number(fpsSel.value)} }
+          });
+          addVideoFromStream(ms, sv.label, 'camera');
+          labelMap[sv.label] = videoSources[videoSources.length-1].id;
+        } else if ((sv.kind === 'screen' || sv.kind === 'window') && BRIDGE){
+          const s = deskSources.find(x => x.name === sv.label);
+          if (!s){ missing.push(`${sv.kind} "${sv.label}"`); continue; }
+          const ms = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: { mandatory: { chromeMediaSource:'desktop', chromeMediaSourceId:s.id,
+                     maxWidth:3840, maxHeight:2160, maxFrameRate:Number(fpsSel.value) } }
+          });
+          addVideoFromStream(ms, s.name, s.kind);
+          labelMap[sv.label] = videoSources[videoSources.length-1].id;
+        } else {
+          missing.push(`${sv.kind} "${sv.label}" (needs the share picker — re-add it manually)`);
+        }
+      } catch(e){ missing.push(`${sv.kind} "${sv.label}" (${(e && e.name) || 'error'})`); }
+    }
+
+    // Master audio
+    for (const sa of (cfg.masterAudio || [])) await restoreAudioSource(sa, null, micDevs, missing);
+
+    // Scenes (with their own audio)
+    for (const ss of (cfg.scenes || [])){
+      const sc = {
+        id: 'sc'+(++uid),
+        name: ss.name || 'Scene',
+        type: ['single','grid','overlay'].includes(ss.type) ? ss.type : 'single',
+        hotkey: ss.hotkey && !RESERVED_KEYS.includes(ss.hotkey) && !scenes.some(s => s.hotkey === ss.hotkey)
+          ? ss.hotkey : nextFreeKey(),
+        mainId: labelMap[ss.main] || videoSources[0]?.id || null,
+        includeIds: (ss.include || []).map(l => labelMap[l]).filter(Boolean),
+        items: (ss.items || []).map(it => ({ srcId: labelMap[it.src], rect: it.rect, z: it.z })).filter(it => it.srcId),
+      };
+      ensureItems(sc);
+      scenes.push(sc);
+      for (const sa of (ss.audio || [])) await restoreAudioSource(sa, sc.id, micDevs, missing);
+    }
+
+    renderVideoList(); renderAudioList(); renderScenes(); renderHotkeys();
+    const act = cfg.activeScene ? scenes.find(s => s.name === cfg.activeScene) : null;
+    setActiveScene(act ? act.id : null);
+    updateOSD();
+
+    if (missing.length){
+      showError('Config loaded. These could not be re-attached automatically (device unplugged, renamed, or picker required):\n• ' + missing.join('\n• '));
+    } else {
+      showInfo('Config loaded — sources, scenes, audio, and hotkeys are all back.');
+    }
+  }
+
+  saveConfigBtn.addEventListener('click', saveConfigToFile);
+  loadConfigBtn.addEventListener('click', () => configFileInput.click());
+  configFileInput.addEventListener('change', async () => {
+    const f = configFileInput.files && configFileInput.files[0];
+    configFileInput.value = '';
+    if (!f) return;
+    try {
+      const cfg = JSON.parse(await f.text());
+      await applyConfig(cfg);
+    } catch(e){ showError('Could not read that config file: ' + e.message); }
+  });
+
+  /* ================= permissions ================= */
+  async function checkAccessState(){
+    let devices = [];
+    try { devices = await navigator.mediaDevices.enumerateDevices(); } catch(_){ return; }
+    const limited = devices.some(d => (d.kind === 'videoinput' || d.kind === 'audioinput') && !d.label) || !devices.length;
+    accessUnlocked = !limited;
+    permBtn.classList.toggle('hidden', !limited);
+    if (limited){
+      permNote.textContent = 'Device list is incomplete: the browser hides devices (capture cards, extra audio inputs) until camera & microphone access is granted. Press "Request device access" to unlock the full list.';
+      permNote.classList.remove('hidden');
+    } else {
+      permNote.classList.add('hidden');
+    }
+  }
+
+  async function requestAccess(auto){
+    clearError();
+    permBtn.disabled = true; permBtn.textContent = 'Requesting…';
+    let denied = false;
+    try {
+      const cam = await navigator.permissions?.query?.({ name:'camera' });
+      const mic = await navigator.permissions?.query?.({ name:'microphone' });
+      denied = cam?.state === 'denied' || mic?.state === 'denied';
+    } catch(_){}
+    let ok = false;
+    try {
+      const tmp = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+      tmp.getTracks().forEach(t => t.stop());
+      ok = true;
+    } catch(e){
+      if (e.name === 'NotFoundError'){
+        try { const tmp = await navigator.mediaDevices.getUserMedia({ video:true }); tmp.getTracks().forEach(t=>t.stop()); ok = true; }
+        catch(e2){ if (!auto) showError(friendlyError(e2)); }
+      } else if (e.name === 'NotAllowedError' && denied && !auto){
+        showError('Access is blocked at browser level, so no prompt can appear. 🔒 icon in the address bar → Site settings → allow Camera & Microphone → reload.');
+      } else if (!auto){ showError(friendlyError(e)); }
+    }
+    await checkAccessState();
+    permBtn.disabled = false; permBtn.textContent = '🔓 Request device access';
+    return ok;
+  }
+  permBtn.addEventListener('click', () => requestAccess(false));
+
+  navigator.mediaDevices?.addEventListener?.('devicechange', checkAccessState);
+  (async () => {
+    try {
+      for (const name of ['camera','microphone']){
+        const st = await navigator.permissions?.query?.({ name });
+        st?.addEventListener?.('change', checkAccessState);
+      }
+    } catch(_){}
+  })();
+
+  /* ================= init ================= */
+  paintVol();
+  applyOutput();
+  renderHotkeys();
+  renderScenes();
+  refreshRecDir();
+  updateOSD();
+  (async () => {
+    if (!navigator.mediaDevices?.getUserMedia){
+      showError('This browser does not support capture (getUserMedia unavailable). Use a recent Chrome, Edge, Firefox, or Safari.');
+      startBtn.disabled = true;
+      return;
+    }
+    if (IS_ELECTRON) envTip.classList.add('hidden');
+    await checkAccessState();
+    const ok = accessUnlocked || await requestAccess(true);
+    if (ok){
+      nosignalHint.textContent = 'Devices detected. Add sources with ＋, or press Start capture to use the default camera.';
+      if (IS_ELECTRON) await start();
+    } else {
+      nosignalHint.textContent = 'Waiting for camera / microphone access — use "Request device access" in the options panel.';
+    }
+  })();
+})();
+</script>
+</body>
+</html>

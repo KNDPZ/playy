@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WASP — Peer-to-peer music, hosted your way | playy.online</title>
+<meta name="description" content="Discover WASP, playy.online's peer-to-peer music webapp. Listen without an account, use compatible Subsonic mobile clients, or self-host on Docker or Cloudflare and help grow the HIVE.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://playy.online/wasp.html">
+<meta property="og:title" content="WASP — Your music. Your server. Our HIVE.">
+<meta property="og:description" content="Discover music, connect Subsonic/OpenSubsonic mobile players, or host your own WASP server with Docker or Cloudflare. Join the peer-to-peer music HIVE.">
+<meta property="og:image" content="https://playy.online/wasp-assets/wasp-brand-full.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0E131C">
+<link rel="icon" type="image/png" href="wasp-assets/wasp-mascot.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>(function(){let t;try{t=localStorage.getItem('playy-theme')}catch(e){}document.documentElement.dataset.theme=t==='light'?'light':'dark';})();</script>
+<style>
+:root,:root[data-theme="dark"]{
+ --paper:#0E131C;--paper2:#131A27;--card:#141C2A;--ink:#E9EBE7;--slate:#9DA7B7;--line:#242D3C;--card-line:#293344;
+ --amber:#E3A83A;--gold:#FFD326;--hive:#D4FA65;--night:#0A1018;--shadow:0 15px 38px rgba(0,0,0,.28);
+ --display:'Archivo',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+:root[data-theme="light"]{--paper:#FAF9F5;--paper2:#F2F0E9;--card:#FFFFFF;--ink:#151B26;--slate:#59616E;--line:#E4E1D7;--card-line:#DDD8CA;--amber:#9B6608;--shadow:0 15px 38px rgba(14,22,38,.06)}
+*{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;min-height:100vh;display:flex;flex-direction:column;color:var(--ink);background:var(--paper);font:16px/1.65 var(--body);-webkit-font-smoothing:antialiased}
+a{color:var(--amber);text-decoration:none}a:hover{color:var(--ink)}:focus-visible{outline:2px solid var(--amber);outline-offset:4px;border-radius:3px}
+.wrap{max-width:1110px;padding:0 26px;margin:0 auto;width:100%}
+header.top{border-bottom:1px solid var(--line)}.topbar{display:flex;align-items:center;gap:25px;padding:18px 0}.wordmark{color:var(--ink);font:800 19px/1.1 var(--display);letter-spacing:-.02em}.wordmark .tld{color:var(--amber);font:500 14px var(--mono);letter-spacing:0}.crumb{font:12px var(--mono);color:var(--slate)}.crumb b{color:var(--ink)}
+nav.main{margin-left:auto;display:flex;align-items:center;gap:21px}nav.main a{font:12px var(--mono);color:var(--slate);text-transform:uppercase;letter-spacing:.05em}nav.main a:hover{color:var(--ink)}
+#themeBtn{display:inline-flex;white-space:nowrap;align-items:center;gap:7px;font:12px var(--mono);color:var(--slate);background:var(--paper2);border:1px solid var(--line);border-radius:99px;padding:7px 12px;cursor:pointer}#themeBtn:hover{color:var(--ink)}
+.eyebrow{font:500 11.5px var(--mono);text-transform:uppercase;letter-spacing:.16em;color:var(--slate);margin:0 0 16px}.eyebrow .dot{display:inline-block;width:7px;height:7px;background:var(--hive);border-radius:50%;vertical-align:1px;margin-right:8px;box-shadow:0 0 12px rgba(212,250,101,.5)}
+.hero{padding:clamp(50px,7vw,85px) 0 clamp(36px,6vw,62px)}.hero-grid{display:grid;grid-template-columns:1.12fr .88fr;align-items:center;gap:35px}
+.hero h1{font:800 clamp(38px,5.3vw,65px)/1.07 var(--display);letter-spacing:-.047em;margin:0;max-width:15ch}.hero h1 em{font-style:normal;color:#D4FA65}.hero .lede{max-width:58ch;margin:23px 0 0;font-size:17px;color:var(--slate)}.hero .lede strong{color:var(--ink)}
+.hero .ctas,.cta-actions{display:flex;flex-wrap:wrap;gap:11px;margin-top:27px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:12px 18px;border-radius:9px;border:1px solid transparent;font:600 12.5px var(--mono);transition:transform .15s,border-color .15s,background .15s}.btn:hover{transform:translateY(-1px)}.btn.primary{background:#D4FA65;color:#15200C}.btn.primary:hover{background:#E5FF97;color:#15200C}.btn.ghost{border-color:var(--card-line);color:var(--ink)}.btn.ghost:hover{border-color:var(--amber);color:var(--amber)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:24px}.chips span{font:11px var(--mono);color:var(--slate);background:var(--paper2);border:1px solid var(--line);padding:5px 9px;border-radius:99px}
+.hero-art{position:relative;border:1px solid #333521;background:radial-gradient(ellipse at 65% 23%,rgba(255,205,15,.16),transparent 62%),linear-gradient(145deg,#10140F,#080C11 70%);border-radius:20px;min-height:415px;overflow:hidden;box-shadow:var(--shadow);padding:27px;display:flex;flex-direction:column;justify-content:space-between;gap:25px}
+.hero-art:after{content:'';position:absolute;right:-84px;bottom:-95px;width:280px;height:280px;border:1px solid rgba(255,206,26,.14);border-radius:50%;box-shadow:0 0 0 45px rgba(255,206,26,.028),0 0 0 100px rgba(255,206,26,.025);pointer-events:none}
+.hero-art .brand-img{max-width:100%;width:390px;height:auto;object-fit:contain;position:relative;z-index:1}.hero-art .network{position:relative;display:grid;grid-template-columns:1fr 1.25fr 1fr;align-items:center;gap:12px;margin:0 3px;z-index:1}
+.network .node{min-height:96px;border-radius:13px;border:1px solid #353C2A;background:#131912;padding:14px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.network .node strong{font:700 13px var(--display);color:#EAF2CF}.network .node small{font:10px var(--mono);color:#ACB996}.network .center-node{border-color:#E8BE31;background:linear-gradient(140deg,#242513,#11160F)}.network .center-node img{width:48px;height:48px;object-fit:contain}.node .node-icon{font-size:24px;line-height:1;color:#D5ED7E}.hero-art .photo-caption{font:11px/1.6 var(--mono);color:#94A087;z-index:1;position:relative;border-top:1px solid #2B3325;padding-top:13px}
+section{padding:clamp(35px,5vw,60px) 0}.seclab{display:flex;align-items:baseline;gap:17px;margin:0 0 26px}.seclab h2{font:700 22px var(--display);letter-spacing:-.02em;margin:0;white-space:nowrap}.seclab .rule{height:1px;background:var(--line);flex:1}.seclab .note{font:11px var(--mono);color:var(--slate);white-space:nowrap}
+.features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--card-line);border-radius:14px;padding:25px;min-width:0}.card .kicker{font:11px var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--amber)}.card h3{font:700 20px/1.27 var(--display);margin:13px 0 10px}.card p{color:var(--slate);font-size:14.5px;margin:0}.card strong{color:var(--ink);font-weight:600}.card .symbol{font-size:25px;line-height:1;color:var(--amber)}
+.band{border-radius:18px;border:1px solid #30372D;overflow:hidden;background:radial-gradient(85% 100% at 85% 0,rgba(255,215,64,.08),transparent),#0B1014;color:#E8EDE5}.band-inner{display:grid;grid-template-columns:1.12fr .88fr}.band-copy{padding:clamp(27px,5vw,44px)}.band h2{font:700 clamp(26px,3.2vw,38px)/1.16 var(--display);letter-spacing:-.035em;margin:0 0 14px}.band h2 em{font-style:normal;color:#D4FA65}.band p{color:#ACB9B0;margin:0 0 16px;font-size:15px}.band .badge{display:inline-block;font:11px var(--mono);padding:5px 11px;border:1px solid #455035;border-radius:99px;color:#E1EFA7;margin:0 7px 6px 0}.band-visual{border-left:1px solid #30372D;padding:30px;display:grid;place-items:center}
+.band-visual .mini{width:100%;border-radius:12px;border:1px solid #394130;padding:22px;background:#131916}.mini .heading{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:#A3B393;margin-bottom:18px}.mini .row{display:flex;align-items:center;gap:13px;padding:10px 0;border-top:1px solid #2C3529}.mini .row:first-of-type{border-top:none}.mini .icon{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;flex:none;background:#29351E;color:#D4FA65}.mini .row span{font:500 13px var(--body);color:#E2E7DB}.mini .row small{display:block;font-size:11px;color:#97A291}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch}.mobile-content h3{font:700 clamp(25px,3vw,35px)/1.18 var(--display);letter-spacing:-.035em;margin:0 0 17px}.mobile-content p{margin:0 0 17px;color:var(--slate);font-size:15px}.mobile-content strong{color:var(--ink)}.mobile-content .stages{margin:18px 0 0;padding:0;list-style:none}.mobile-content .stages li{display:flex;gap:13px;margin:0 0 17px;color:var(--slate);font-size:14px}.mobile-content .stages b{display:grid;place-items:center;font:600 12px var(--mono);color:#141A11;background:#D4FA65;border-radius:8px;width:29px;height:29px;flex:none}.mobile-content .stages strong{display:block}
+.device-panel{background:linear-gradient(135deg,#222232,#141923);border:1px solid #414154;border-radius:17px;padding:24px;display:grid;grid-template-columns:190px 1fr;gap:24px;align-items:center;overflow:hidden}
+.device-panel img{display:block;width:100%;height:auto;max-height:400px;object-fit:contain;object-position:top;border-radius:13px;box-shadow:0 15px 30px rgba(0,0,0,.35)}.device-panel .device-info{color:#CCD0DA}.device-info h4{font:700 20px/1.3 var(--display);color:#FFFFFF;margin:0 0 13px}.device-info p{color:#ACB4C4;font-size:13.5px;margin:0 0 10px}.device-info .tag{display:inline-block;color:#D4FA65;font:11px var(--mono);border:1px solid rgba(212,250,101,.5);padding:5px 8px;border-radius:6px;margin-bottom:18px}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.step{background:var(--card);border:1px solid var(--card-line);border-radius:14px;padding:25px}.step .num{color:var(--amber);font:600 12px var(--mono);letter-spacing:.15em}.step h3{font:700 21px var(--display);margin:12px 0}.step p{color:var(--slate);font-size:14.5px;margin:0}.step a{color:var(--amber)}
+.callout{display:flex;gap:17px;align-items:start;border:1px solid var(--card-line);border-radius:13px;background:var(--paper2);padding:24px}.callout .asterisk{color:var(--amber);font:800 28px var(--display);line-height:1}.callout h3{margin:0 0 7px;font:700 18px var(--display)}.callout p{margin:0;color:var(--slate);font-size:14.5px}.callout strong{color:var(--ink)}
+.join{display:grid;grid-template-columns:1fr auto;align-items:center;gap:25px;background:#0C1014;border:1px solid #3B3E28;border-radius:18px;padding:clamp(25px,4vw,42px);color:#F3F6EE;position:relative;overflow:hidden}.join:before{content:'';position:absolute;right:-60px;top:-90px;width:240px;height:240px;border-radius:50%;border:1px solid rgba(255,202,26,.13);pointer-events:none}.join .join-logo{width:min(360px,100%);height:auto;max-height:80px;object-fit:contain;object-position:left}.join h2{font:700 27px/1.23 var(--display);letter-spacing:-.02em;margin:14px 0 9px}.join p{color:#A9B6AC;font-size:14.5px;max-width:60ch;margin:0}.join .cta-actions{justify-content:flex-end;position:relative;z-index:1}
+footer{margin-top:auto;border-top:1px solid var(--line);padding:25px 0 31px}.foot-in{display:flex;align-items:center;gap:17px;flex-wrap:wrap;color:var(--slate);font:12px var(--mono)}.foot-in .spacer{flex:1}
+@media(max-width:960px){.hero-grid{grid-template-columns:1fr}.hero-art{min-height:300px}.features{grid-template-columns:repeat(2,minmax(0,1fr))}.device-panel{grid-template-columns:165px 1fr}}
+@media(max-width:760px){nav.main{display:none}.crumb{display:none}.topbar{gap:12px}.topbar #themeBtn{margin-left:auto}.wrap{padding:0 18px}.hero{padding-top:44px}.hero-art{min-height:310px}.features,.two-col,.steps,.band-inner{grid-template-columns:1fr}.band-visual{border-left:0;border-top:1px solid #30372D}.seclab .note{display:none}.join{grid-template-columns:1fr}.join .cta-actions{justify-content:flex-start}.device-panel{grid-template-columns:140px 1fr;gap:15px;padding:14px}}
+@media(max-width:420px){.hero h1{font-size:38px}.device-panel{grid-template-columns:1fr}.device-panel img{max-height:300px;width:auto;max-width:80%;margin:auto}.hero-art{padding:22px}.network .node{padding:10px 4px;min-height:80px}.network .node strong{font-size:11px}.network .node small{font-size:8px}.network .center-node img{width:35px;height:35px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap topbar">
+  <a href="/" class="wordmark" aria-label="playy.online home">playy<span class="tld">.online</span></a>
+  <span class="crumb">/ projects / <b>WASP</b></span>
+  <nav class="main" aria-label="Page sections"><a href="#features">Features</a><a href="#mobile">Mobile</a><a href="#host">Host a server</a><a href="#hive">The HIVE</a></nav>
+  <button id="themeBtn" type="button" aria-label="Switch color theme">☀ Light</button>
+</div></header>
+<main>
+<div class="wrap">
+ <div class="hero hero-grid">
+  <div>
+   <p class="eyebrow"><span class="dot"></span> playy.online / latest project · ongoing development</p>
+   <h1>Your music.<br>Your server.<br><em>Our growing HIVE.</em></h1>
+   <p class="lede"><strong>WASP</strong> is a self-hostable, peer-to-peer music webapp. Discover tracks across connected WASP servers, build playlists, listen instantly as a guest, or bring your own music library into the network.</p>
+   <div class="ctas">
+    <a class="btn primary" href="https://wasp.playy.online/" target="_blank" rel="noopener">▶ Listen on WASP ↗</a>
+    <a class="btn ghost" href="https://github.com/KNDPZ/WASP" target="_blank" rel="noopener">Source on GitHub ↗</a>
+   </div>
+   <div class="chips"><span>No sign-in needed to listen</span><span>Subsonic / OpenSubsonic</span><span>Docker + Cloudflare</span><span>Federated P2P music</span></div>
+  </div>
+  <div class="hero-art" aria-label="Official WASP identity and illustrated peer network">
+   <img class="brand-img" src="wasp-assets/wasp-brand-full.png" alt="Official WASP yellow wasp mascot and white WASP wordmark">
+   <div class="network" aria-label="One WASP HIVE connected to separate music servers">
+    <div class="node"><span class="node-icon">♫</span><strong>Host A</strong><small>Music library</small></div>
+    <div class="node center-node"><img src="wasp-assets/wasp-mascot.png" alt=""><strong>WASP HIVE</strong><small>Connected peers</small></div>
+    <div class="node"><span class="node-icon">♫</span><strong>Host B</strong><small>Music library</small></div>
+   </div>
+   <div class="photo-caption">Peer-to-peer music, hosted your way. Each participating host controls what its server shares. · Network illustration</div>
+  </div>
+ </div>
+ <section id="features">
+  <div class="seclab"><h2>What makes WASP different</h2><span class="rule"></span><span class="note">music belongs to the network, not one box</span></div>
+  <div class="features">
+   <article class="card"><span class="symbol">◎</span><span class="kicker">01 / listen</span><h3>Play without signing in</h3><p>Browse and listen to publicly shared music directly in the web player. <strong>No account required</strong> to start exploring; accounts unlock personal features.</p></article>
+   <article class="card"><span class="symbol">⟷</span><span class="kicker">02 / connect</span><h3>Peer-to-peer discovery</h3><p>Explore permitted libraries across connected WASP hosts. The network can grow without putting every MP3 on a single central server.</p></article>
+   <article class="card"><span class="symbol">♫</span><span class="kicker">03 / create</span><h3>Playlists, favorites and search</h3><p>Explore albums, artists and tracks; create playlists, discover public playlists and save music you want to hear again.</p></article>
+   <article class="card"><span class="symbol">◉</span><span class="kicker">04 / what's live</span><h3>See what the HIVE plays</h3><p>Follow recently listened tracks and anonymous current streaming activity where supported. No listener names are needed.</p></article>
+   <article class="card"><span class="symbol">▣</span><span class="kicker">05 / mobile</span><h3>OpenSubsonic compatibility</h3><p>Connect a supported Android or iOS Subsonic/OpenSubsonic client through WASP's optional <strong>Mobile Bridge</strong> instead of installing a dedicated WASP app.</p></article>
+   <article class="card"><span class="symbol">⬡</span><span class="kicker">06 / your host</span><h3>Run the music, your way</h3><p>Deploy on <strong>Cloudflare Workers</strong> or <strong>Docker / Portainer</strong>. Upload music or index an existing host folder on Docker, then decide whether to share your library.</p></article>
+  </div>
+ </section>
+ <section id="guest">
+  <div class="band"><div class="band-inner">
+   <div class="band-copy">
+    <p class="eyebrow">Start with a song. Stay for the network.</p>
+    <h2>No account? <em>Press play.</em></h2>
+    <p>WASP's public browser player is open to guests. Search the available music, open a shared playlist and enjoy the stream without signing in. Create an account when you want to manage your playlists, preferences and publishing options.</p>
+    <div><span class="badge">Guest listening</span><span class="badge">Shared playlists</span><span class="badge">Cross-server discovery</span></div>
+    <div class="ctas"><a href="https://wasp.playy.online/" class="btn primary" target="_blank" rel="noopener">Open the web player ↗</a></div>
+   </div>
+   <div class="band-visual" aria-label="Example WASP listening features"><div class="mini">
+    <div class="heading">From a single browser tab</div>
+    <div class="row"><span class="icon">♫</span><div><span>Browse the shared catalogue</span><small>Artists · Albums · Tracks</small></div></div>
+    <div class="row"><span class="icon">☷</span><div><span>Discover public playlists</span><small>Shared by WASP hosts &amp; members</small></div></div>
+    <div class="row"><span class="icon">◉</span><div><span>See live listening activity</span><small>Anonymous activity, no identities</small></div></div>
+    <div class="row"><span class="icon">▶</span><div><span>Keep listening while you browse</span><small>Persistent web audio player</small></div></div>
+   </div></div>
+  </div></div>
+ </section>
+ <section id="mobile">
+  <div class="seclab"><h2>WASP on your phone</h2><span class="rule"></span><span class="note">Subsonic / OpenSubsonic</span></div>
+  <div class="two-col">
+   <div class="mobile-content">
+    <p class="eyebrow">WASP Mobile Bridge · v16</p>
+    <h3>Your favorite compatible music app. <span style="color:var(--amber)">WASP's music network.</span></h3>
+    <p>There's no separate WASP mobile app to install. WASP offers a <strong>Subsonic/OpenSubsonic API compatibility layer</strong> so third-party mobile players can browse supported music and playlists through the same native WASP backend.</p>
+    <ol class="stages">
+     <li><b>1</b><span><strong>Choose a supported client</strong>Use a Subsonic/OpenSubsonic-compatible Android or iOS music player.</span></li>
+     <li><b>2</b><span><strong>Generate a device key</strong>Sign into WASP and open Account Settings → Mobile. The server administrator must first enable Mobile Bridge.</span></li>
+     <li><b>3</b><span><strong>Enter your WASP /mobile URL</strong>Use your WASP username and generated device key. Available features vary by client and server version.</span></li>
+    </ol>
+    <p style="font-size:12.5px">Android integration has been demonstrated for sign-in and playlist browsing. Compatibility, peer playback, and artwork behavior continue to be tested and refined.</p>
+   </div>
+   <div class="device-panel">
+    <img src="wasp-assets/wasp-mobile-library.webp" alt="Example Android Subsonic client displaying WASP playlists and song counts" loading="lazy" width="440" height="1000">
+    <div class="device-info"><span class="tag">MOBILE CLIENT</span><h4>One library, more ways to listen.</h4><p>Playlists from your own WASP server and permitted network sources can appear inside compatible music players.</p><p>Illustration uses an actual Android client screenshot. The player's interface is its own, not part of the WASP webapp.</p></div>
+   </div>
+  </div>
+ </section>
+ <section id="host">
+  <div class="seclab"><h2>Host your own WASP server</h2><span class="rule"></span><span class="note">bring a library to the HIVE</span></div>
+  <div class="steps">
+   <article class="step"><span class="num">01 / DEPLOY</span><h3>Choose your host</h3><p>Deploy WASP through <strong>Cloudflare Workers</strong>, or self-host using <strong>Docker / Portainer</strong> on a server or NAS. Use the project documentation to configure storage and credentials securely.</p></article>
+   <article class="step"><span class="num">02 / LOAD &amp; SHARE</span><h3>Bring your music</h3><p>Upload tracks via WASP, or index an existing folder when using Docker. Decide what your server shares; keep your installation and administrator access secure.</p></article>
+   <article class="step"><span class="num">03 / JOIN</span><h3>Become part of the HIVE</h3><p><strong>Register on official WASP</strong>, request the ability to publish peer links, and submit your public HTTPS server URL through <strong>Account Settings → Publish</strong> after an administrator enables the permission.</p></article>
+  </div>
+  <div style="margin-top:19px" class="callout"><div class="asterisk">✳</div><div><h3>Publishing isn't automatic</h3><p>Member-submitted links become <strong>peer candidates</strong> and require individual publishing permission from the official WASP administrators. Your server must be reachable and configured to share its library. Please share only music you're authorized to make available.</p></div></div>
+ </section>
+ <section id="hive">
+  <div class="join">
+   <div>
+    <img src="wasp-assets/wasp-wordmark.png" class="join-logo" alt="Official WASP wordmark" loading="lazy">
+    <h2>Help the HIVE grow.</h2>
+    <p>Visit the official website, start listening, explore the source, or contribute a WASP server of your own. Every trusted, reachable peer can help expand the music people discover.</p>
+   </div>
+   <div class="cta-actions"><a href="https://wasp.playy.online/" class="btn primary" target="_blank" rel="noopener">Visit WASP ↗</a><a href="https://github.com/KNDPZ/WASP" class="btn ghost" target="_blank" rel="noopener">GitHub repository ↗</a></div>
+  </div>
+ </section>
+ <section id="development" style="padding-top:10px">
+  <div class="callout"><div class="asterisk">!</div><div><h3>Built in public. Still under development.</h3><p>WASP is an active project, not a finished commercial music service. <strong>Bugs and incomplete client integrations are expected</strong>, and new features, refinements and fixes are being worked on continuously. Some peers and mobile apps may not support every feature. If you find a bug or want to contribute, visit the <a href="https://github.com/KNDPZ/WASP/issues" target="_blank" rel="noopener">GitHub issue tracker</a>.</p></div></div>
+ </section>
+</div>
+</main>
+<footer><div class="wrap foot-in">
+ <span>© <span id="year"></span> playy.online — independent web studio</span><span class="spacer"></span>
+ <a href="/">Studio home</a><a href="https://wasp.playy.online/" target="_blank" rel="noopener">WASP website</a><a href="https://github.com/KNDPZ/WASP" target="_blank" rel="noopener">Source &amp; issues</a>
+</div></footer>
+<script>
+(function(){const btn=document.getElementById('themeBtn'),meta=document.querySelector('meta[name="theme-color"]');function paint(){const dark=document.documentElement.dataset.theme!=='light';btn.textContent=dark?'☀ Light':'☾ Dark';meta.content=dark?'#0E131C':'#FAF9F5';}btn.addEventListener('click',()=>{const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;try{localStorage.setItem('playy-theme',next)}catch(e){}paint()});paint()})();
+document.getElementById('year').textContent=new Date().getFullYear();
+</script>
+</body>
+</html>

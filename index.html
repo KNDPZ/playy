@@ -6,10 +6,10 @@
      crossorigin="anonymous"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>playy.online — independent web products, running live</title>
-<meta name="description" content="playy.online is a small independent studio of live web products: Tong-its online, streaming, the Crossbench internet speed test, and a global connection telemetry map." />
+<title>playy.online — WASP, Capturra and independent web projects</title>
+<meta name="description" content="Explore WASP, the self-hostable peer-to-peer music webapp, alongside Capturra and other independent web projects from playy.online." />
 <meta property="og:title" content="playy.online" />
-<meta property="og:description" content="Independent web products, running live — Tong-its, Stream, the Crossbench speed test, and a global telemetry map." />
+<meta property="og:description" content="WASP peer-to-peer music, Capturra recording, Crossbench speed testing and other independent browser projects." />
 <meta name="theme-color" content="#0E131C" />
 <script>/* set theme before first paint — dark by default */
 (function(){var t;try{t=localStorage.getItem("playy-theme")}catch(e){}
@@ -131,6 +131,16 @@ document.documentElement.dataset.theme=(t==="light")?"light":"dark";})();</scrip
   .card.wip h3::after{content:"early build";font-family:var(--mono);font-weight:500;font-size:10.5px;letter-spacing:.08em;
     text-transform:uppercase;color:var(--slate);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-left:10px;vertical-align:2px;}
 
+  /* ---------- WASP project spotlight ---------- */
+  .card.wasp-feature {background:linear-gradient(145deg,rgba(250,205,31,.085),transparent 59%),var(--card);border-color:rgba(243,190,33,.42);}
+  .card.wasp-feature:hover{border-color:#F6C527;}
+  .card .project-title{display:flex;align-items:center;gap:12px;min-width:0;}
+  .card .project-logo{width:39px;height:43px;object-fit:contain;flex:none;filter:drop-shadow(0 3px 10px rgba(253,191,17,.16));}
+  .card.wasp-feature .project-meta{display:flex;flex-wrap:wrap;gap:7px;margin:1px 0 0;}
+  .card.wasp-feature .project-meta span{font-family:var(--mono);font-size:10px;line-height:1.3;border-radius:99px;border:1px solid rgba(240,194,47,.32);padding:4px 9px;color:#ECC75A;}
+  :root[data-theme="light"] .card.wasp-feature .project-meta span{color:#855b06;}
+  .card.wasp-feature .foot .open{color:var(--amber);}
+
   /* ---------- the Crossbench window (dark inset band) ---------- */
   .bench{background:var(--night);color:var(--night-ink);border-radius:16px;overflow:hidden;
     border:1px solid var(--night-line);}
@@ -199,9 +209,9 @@ document.documentElement.dataset.theme=(t==="light")?"light":"dark";})();</scrip
       <p class="eyebrow rise">playy.online — independent web studio</p>
       <h1 class="rise" style="animation-delay:.05s">Built for the browser.<br>Running <em>right now</em>.</h1>
       <p class="lede rise" style="animation-delay:.1s">
-        playy.online is a small independent studio. Every product below is live on this
-        domain — nothing to install, nothing to sign up for.
-        <b>The status readouts are measured from your connection as you read this.</b>
+        playy.online is an independent home for browser projects and self-hostable tools.
+        Start listening on <b>WASP</b> as a guest, explore the other projects, or run a server of your own.
+        <b>Where supported, service latency is measured from your connection.</b>
       </p>
     </div>
   </div>
@@ -272,6 +282,7 @@ document.documentElement.dataset.theme=(t==="light")?"light":"dark";})();</scrip
   <div class="wrap foot-in">
     <span>© <span id="year"></span> playy.online — independent web studio</span>
     <span class="spacer"></span>
+    <a href="/wasp.html">WASP</a>
     <a href="https://speed.playy.online/">speed test</a>
     <a href="https://speed.playy.online/map">global map</a>
     <a href="https://worldflagcounter.com/details/iHn" title="Visitor flags"><img src="https://worldflagcounter.com/iHn/" alt="Flag Counter" height="18"></a>
@@ -286,6 +297,17 @@ document.documentElement.dataset.theme=(t==="light")?"light":"dark";})();</scrip
   //  (mixed content), so give them a `probe:null` and the dot stays static.
   // ─────────────────────────────────────────────────────────────────────
   const PROJECTS = [
+    {
+      name: "WASP",
+      desc: "Peer-to-peer music for everyone: listen as a guest, connect Subsonic mobile apps, or host your own library and grow the HIVE.",
+      url: "/wasp.html",
+      displayUrl: "wasp.playy.online · project page",
+      probe: "https://wasp.playy.online/",
+      logo: "wasp-assets/wasp-mascot.png",
+      tags: ["OpenSubsonic", "Docker + Cloudflare", "In development"],
+      featured: true,
+      live: true,
+    },
     {
       name: "Capturra",
       desc: "Free multi-source recorder for Windows — scenes, audio mixer, and crash-safe recording that survives anything.",
@@ -334,16 +356,17 @@ document.documentElement.dataset.theme=(t==="light")?"light":"dark";})();</scrip
   for (const p of PROJECTS) {
     const host = (() => { try { return new URL(p.url).host + (new URL(p.url).pathname.replace(/\/$/,"") || ""); } catch { return p.url; } })();
     const el = document.createElement("a");
-    el.className = "card rise" + (p.wip ? " wip" : "");
+    el.className = "card rise" + (p.wip ? " wip" : "") + (p.featured ? " wasp-feature" : "");
     el.style.animationDelay = (delay += .05) + "s";
     el.href = p.url;
     el.innerHTML = `
       <div class="head">
-        <h3>${p.name}</h3>
+        <div class="project-title">${p.logo ? `<img class="project-logo" src="${p.logo}" alt="" loading="lazy">` : ""}<h3>${p.name}</h3></div>
         <span class="status checking"><span class="dot"></span><span class="lbl">Live</span>&nbsp;<span class="ms"></span></span>
       </div>
       <p>${p.desc}</p>
-      <div class="foot"><span class="url">${host}</span><span class="open">Open →</span></div>`;
+      ${p.tags ? `<div class="project-meta">${p.tags.map(tag => `<span>${tag}</span>`).join("")}</div>` : ""}
+      <div class="foot"><span class="url">${p.displayUrl || host}</span><span class="open">Explore →</span></div>`;
     grid.appendChild(el);
     cards.push({ p, el });
   }

@@ -1,0 +1,30 @@
+playy.online — WASP showcase page addition
+===========================================
+
+Changes:
+- index.html: WASP now appears first in the Products directory, with an official
+  mascot icon, links to its dedicated page and a public-domain availability probe.
+- wasp.html: new standalone project page consistent with the site's existing
+  product-detail layout and shared dark/light theme setting.
+- wasp-assets/: supplied WASP banner, wordmark, mascot and a lightweight copy
+  of the user-supplied Android playlist screenshot.
+- All other original project files from the supplied playy.online.rar are preserved.
+
+Links on WASP page:
+  https://wasp.playy.online/
+  https://github.com/KNDPZ/WASP
+
+Deployment:
+1. Back up your existing playy.online website files.
+2. Upload index.html, wasp.html and the complete wasp-assets/ folder to
+   the same web root. Keep other files as they are.
+3. Check https://playy.online/ and https://playy.online/wasp.html
+   after your web host finishes deployment. Refresh if cached.
+4. If deploying through GitHub, add these files to the site repository and
+   commit; don't replace the entire deployment with a different repository.
+
+Note: This changes the playy.online project showcase only. It does not modify
+any WASP app code, deployment, database, music files, accounts or peer settings.
+
+The supplied archive included a standalone Capturra page but not an Obscura
+page. The WASP page follows the same standalone-project-page structure.
